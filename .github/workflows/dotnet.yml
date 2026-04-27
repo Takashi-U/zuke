@@ -1,28 +1,41 @@
-# This workflow will build a .NET project
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-net
-
-name: .NET
+name: .NET CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: [ "main", "master", "work" ]
   pull_request:
-    branches: [ "main" ]
 
 jobs:
-  build:
-
+  build-test-pack:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Setup .NET
-      uses: actions/setup-dotnet@v4
-      with:
-        dotnet-version: 8.0.x
-    - name: Restore dependencies
-      run: dotnet restore
-    - name: Build
-      run: dotnet build --no-restore
-    - name: Test
-      run: dotnet test --no-build --verbosity normal
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.x
+
+      - name: Display .NET info
+        run: dotnet --info
+
+      - name: Restore
+        run: dotnet restore zuke.sln
+
+      - name: Build
+        run: dotnet build zuke.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test zuke.sln --configuration Release --no-build --verbosity normal
+
+      - name: Pack global tool
+        run: dotnet pack src/Zuke.Cli/Zuke.Cli.csproj --configuration Release --no-build -o ./nupkg
+
+      - name: Upload nupkg artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: zuke-nupkg
+          path: nupkg/*.nupkg
