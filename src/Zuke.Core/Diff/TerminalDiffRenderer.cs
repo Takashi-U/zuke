@@ -1,0 +1,2 @@
+using Spectre.Console;
+namespace Zuke.Core.Diff; public sealed class TerminalDiffRenderer { public void Render(IAnsiConsole c, DiffResult r, bool color){ foreach(var l in r.Hunks.SelectMany(x=>x.Lines)){ if(color && l.Kind=='+') c.MarkupLine($"[green]+{Markup.Escape(l.Text)}[/]"); else if(color && l.Kind=='-') c.MarkupLine($"[red]-{Markup.Escape(l.Text)}[/]"); else c.WriteLine($"{l.Kind}{l.Text}"); } } }
