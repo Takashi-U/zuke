@@ -1,0 +1,41 @@
+name: .NET CI
+
+on:
+  push:
+    branches: [ "main", "master", "work" ]
+  pull_request:
+
+jobs:
+  build-test-pack:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.x
+
+      - name: Display .NET info
+        run: dotnet --info
+
+      - name: Restore
+        run: dotnet restore zuke.sln
+
+      - name: Build
+        run: dotnet build zuke.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test zuke.sln --configuration Release --no-build --verbosity normal
+
+      - name: Pack global tool
+        run: dotnet pack src/Zuke.Cli/Zuke.Cli.csproj --configuration Release --no-build -o ./nupkg
+
+      - name: Upload nupkg artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: zuke-nupkg
+          path: nupkg/*.nupkg

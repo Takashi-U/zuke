@@ -1,0 +1,1 @@
+namespace Zuke.Core.Rendering; public static class LawtextNormalizer { public static string Normalize(string s){ var lines=s.Replace("\r\n","\n").Split("\n").Select(x=>x.TrimEnd()); return string.Join("\n", lines).TrimEnd()+"\n"; } }
