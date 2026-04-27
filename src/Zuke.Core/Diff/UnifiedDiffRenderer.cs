@@ -1,0 +1,1 @@
+namespace Zuke.Core.Diff; public sealed class UnifiedDiffRenderer { public string Render(string oldName,string newName,DiffResult r)=>$"--- {oldName}\n+++ {newName}\n@@ -1 +1 @@\n{r.UnifiedText}\n"; }
