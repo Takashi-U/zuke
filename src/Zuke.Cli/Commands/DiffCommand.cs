@@ -34,8 +34,9 @@ public sealed class DiffCommand : Command<DiffCommand.Settings>
         if (oldCompile.HasErrors || newCompile.HasErrors || oldCompile.Document is null || newCompile.Document is null) return 2;
 
         var renderer = new LawtextRenderer();
-        var oldText = LawtextNormalizer.Normalize(renderer.Render(oldCompile.Document.Document));
-        var newText = LawtextNormalizer.Normalize(renderer.Render(newCompile.Document.Document));
+        var normalizer = new LawtextNormalizer();
+        var oldText = normalizer.Normalize(renderer.Render(oldCompile.Document, LawtextRenderOptions.Default), LawtextNormalizeOptions.Default);
+        var newText = normalizer.Normalize(renderer.Render(newCompile.Document, LawtextRenderOptions.Default), LawtextNormalizeOptions.Default);
         var result = new LawtextDiffService().Diff(oldText, newText, new DiffOptions(settings.Context));
 
         if (settings.View == "terminal")

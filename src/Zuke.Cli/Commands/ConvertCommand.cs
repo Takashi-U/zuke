@@ -34,8 +34,13 @@ public sealed class ConvertCommand : Command<ConvertCommand.Settings>
 
         if (settings.To == "lawtext")
         {
-            var lawtext = new LawtextRenderer().Render(result.Document.Document);
-            File.WriteAllText(settings.Output, lawtext);
+            var renderer = new LawtextRenderer();
+            var lawtext = renderer.Render(result.Document, LawtextRenderOptions.Default);
+            var renderDiags = LawtextRenderer.ValidateRenderedText(lawtext);
+            reporter.ReportDiagnostics(renderDiags);
+            if (renderDiags.Any(x => x.Severity == Zuke.Core.Model.DiagnosticSeverity.Error)) return 1;
+
+            File.WriteAllText(settings.Output, lawtext, new System.Text.UTF8Encoding(false));
             reporter.Info($"Lawtextを出力しました: {settings.Output}");
             return 0;
         }
