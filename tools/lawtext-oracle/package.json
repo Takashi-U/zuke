@@ -1,0 +1,11 @@
+{
+  "private": true,
+  "type": "module",
+  "devDependencies": {
+    "lawtext": "^0.1.52"
+  },
+  "scripts": {
+    "verify": "node verify-lawtext.mjs",
+    "normalize": "node normalize-lawtext.mjs"
+  }
+}
