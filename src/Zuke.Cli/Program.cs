@@ -7,5 +7,6 @@ app.Configure(c =>
     c.AddCommand<ConvertCommand>("convert");
     c.AddCommand<LawtextCommand>("lawtext");
     c.AddCommand<DiffCommand>("diff");
+    c.AddCommand<ImportCommand>("import");
 });
 return app.Run(args);
