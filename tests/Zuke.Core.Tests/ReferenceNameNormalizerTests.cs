@@ -17,8 +17,13 @@ public class ReferenceNameNormalizerTests
 
     [Theory]
     [InlineData("届出 義務")]
+    [InlineData("届出\t義務")]
+    [InlineData("届出　義務")]
     [InlineData("届出:義務")]
     [InlineData("届出（義務）")]
+    [InlineData("第3条")]
+    [InlineData("第2項")]
+    [InlineData("第一号")]
     public void InvalidNames_AreRejectedAndEmitLmd023(string raw)
     {
         Assert.False(ReferenceNameNormalizer.TryNormalize(raw, out _));

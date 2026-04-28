@@ -1,16 +1,31 @@
 using System.Text;
+using System.Text.RegularExpressions;
 
 namespace Zuke.Core.References;
 
 public static class ReferenceNameNormalizer
 {
+    private static readonly Regex NumberLikeReferenceNameRegex = new(
+        @"^第(?:\d+|[一二三四五六七八九十百千]+)(?:条|項|号)$",
+        RegexOptions.Compiled);
+
     public static bool TryNormalize(string raw, out string normalized)
     {
         normalized = string.Empty;
         if (string.IsNullOrWhiteSpace(raw)) return false;
 
         var folded = ToAscii(raw.Trim().Normalize(NormalizationForm.FormKC));
-        if (folded.IndexOfAny([' ', '\u3000', '\r', '\n', ':', '|', '{', '}', '[', ']', '(', ')', '：', '（', '）']) >= 0)
+        if (folded.Any(char.IsWhiteSpace))
+        {
+            return false;
+        }
+
+        if (folded.IndexOfAny([':', '|', '{', '}', '[', ']', '(', ')', '：', '（', '）']) >= 0)
+        {
+            return false;
+        }
+
+        if (NumberLikeReferenceNameRegex.IsMatch(folded))
         {
             return false;
         }
