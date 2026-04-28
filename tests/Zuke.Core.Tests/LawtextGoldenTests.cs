@@ -1,4 +1,6 @@
+using System.Text;
 using Xunit;
+using Zuke.Core.Rendering;
 
 namespace Zuke.Core.Tests;
 
@@ -21,16 +23,16 @@ public class LawtextGoldenTests
     [MemberData(nameof(Cases))]
     public void Golden(string markdownPath, string expectedPath)
     {
-        var markdown = File.ReadAllText(markdownPath);
-        var expected = File.ReadAllText(expectedPath).Replace("\r\n", "\n");
+        var markdown = File.ReadAllText(markdownPath, Encoding.UTF8);
+        var expected = File.ReadAllText(expectedPath, Encoding.UTF8);
         var actual = TestHelpers.RenderLawtext(markdown);
 
-        foreach (var line in expected.Split('\n').Where(x => !string.IsNullOrWhiteSpace(x)))
-        {
-            Assert.Contains(line.TrimEnd(), actual);
-        }
+        var normalizer = new LawtextNormalizer();
+        var normalizedExpected = normalizer.Normalize(expected, LawtextNormalizeOptions.Default);
+        var normalizedActual = normalizer.Normalize(actual, LawtextNormalizeOptions.Default);
 
-        Assert.DoesNotContain("{{", actual);
-        Assert.DoesNotContain("[条:", actual);
+        Assert.Equal(normalizedExpected, normalizedActual);
+        Assert.DoesNotContain("{{", actual, StringComparison.Ordinal);
+        Assert.DoesNotContain("[条:", actual, StringComparison.Ordinal);
     }
 }

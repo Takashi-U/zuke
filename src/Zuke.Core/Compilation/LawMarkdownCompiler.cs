@@ -1,3 +1,4 @@
+using Zuke.Core.Markdown;
 using Zuke.Core.Model;
 using Zuke.Core.Numbering;
 using Zuke.Core.Parsing;
@@ -10,8 +11,10 @@ public sealed class LawMarkdownCompiler
 {
     public CompileResult Compile(string markdown, string? filePath, CompileOptions options)
     {
+        var fm = FrontMatterParser.ParseDetailed(markdown);
         var model = new MarkdownLawParser().Parse(markdown, filePath);
         var diags = new List<DiagnosticMessage>(model.Diagnostics);
+        diags.AddRange(FrontMatterParser.ValidateRequired(fm, filePath));
         diags.AddRange(new LawStructureValidator().Validate(model));
         foreach (var a in model.DirectArticles)
             foreach (var p in a.Paragraphs)

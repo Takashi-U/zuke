@@ -5,9 +5,27 @@ namespace Zuke.Core.Tests;
 public class RelativeReferenceTests
 {
     [Fact]
-    public void Smoke()
+    public void RelativeReferenceFailure_IsLmd027()
     {
-        var result = TestHelpers.Compile();
-        Assert.NotNull(result.Document);
+        var md = """
+---
+lawTitle: T
+lawNum: N
+era: Reiwa
+year: 6
+num: 1
+lawType: Misc
+lang: ja
+---
+## A [a:a]
+[p:p1]
+本文
+
+## B [a:b]
+[p:p2]
+{{ref:p1|relative}}
+""";
+        var r = TestHelpers.Compile(md);
+        Assert.Contains(r.Diagnostics, d => d.Code == "LMD027");
     }
 }

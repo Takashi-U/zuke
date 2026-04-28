@@ -13,6 +13,14 @@ public sealed class ConsoleReporter(IAnsiConsole console, ConsoleOptions options
         {
             var loc = d.Location is null ? "" : $" {d.Location.FilePath}:{d.Location.Line}:{d.Location.Column}";
             console.WriteLine($"{(d.Severity==DiagnosticSeverity.Error?"エラー":"警告")} {d.Code}: {d.Message}{loc}");
+            if (d.RelatedLocations.Count > 0)
+            {
+                console.WriteLine("定義箇所:");
+                foreach (var rel in d.RelatedLocations)
+                {
+                    console.WriteLine($"- {rel.FilePath}:{rel.Line}:{rel.Column}");
+                }
+            }
         }
     }
 }

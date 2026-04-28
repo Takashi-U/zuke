@@ -1,3 +1,4 @@
+using System.Text;
 using Zuke.Core.Model;
 
 namespace Zuke.Core.References;
@@ -27,16 +28,27 @@ public sealed class ReferenceTableBuilder
         void AddRef(string? rawName, LawElementKind kind, SourceLocation? location, int articleNumber, int? paragraphNumber, int? itemNumber)
         {
             if (string.IsNullOrWhiteSpace(rawName)) return;
-            var normalized = rawName.Trim();
             var loc = location ?? new SourceLocation(null, 1, 1);
-            if (table.ContainsKey(normalized))
+            if (!TryNormalizeName(rawName, out var normalized))
             {
-                diags.Add(new(DiagnosticSeverity.Error, "LMD022", $"参照名が重複しています: {normalized}", loc, []));
+                diags.Add(new(DiagnosticSeverity.Error, "LMD023", $"参照名に禁止文字が含まれています: {rawName}", loc, []));
+                return;
+            }
+
+            if (table.TryGetValue(normalized, out var existing))
+            {
+                diags.Add(new(DiagnosticSeverity.Error, "LMD022", $"参照名が重複しています: {rawName}", loc, [existing.Location, loc]));
                 return;
             }
 
             table[normalized] = new(rawName, normalized, kind, loc, articleNumber, paragraphNumber, itemNumber);
         }
+    }
+
+    private static bool TryNormalizeName(string raw, out string normalized)
+    {
+        normalized = raw.Trim().Normalize(NormalizationForm.FormKC).ToLowerInvariant();
+        return normalized.IndexOfAny(['{', '}', '|', '[', ']', '<', '>', '"']) < 0;
     }
 
     private static IEnumerable<ArticleNode> EnumerateArticles(LawDocumentModel model)

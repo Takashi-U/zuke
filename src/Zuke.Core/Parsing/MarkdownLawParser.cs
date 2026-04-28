@@ -1,16 +1,23 @@
 using System.Text.RegularExpressions;
 using Zuke.Core.Markdown;
 using Zuke.Core.Model;
+using Zuke.Core.Numbering;
 
 namespace Zuke.Core.Parsing;
 
 public sealed class MarkdownLawParser
 {
-    private static readonly Regex LabelRegex = new(@"\[(条|項|号):(?<name>[^\]]+)\]", RegexOptions.Compiled);
+    private static readonly Regex LabelRegex = new(@"\[(条|項|号|a|p|i):(?<name>[^\]]+)\]", RegexOptions.Compiled | RegexOptions.IgnoreCase);
+    private static readonly Regex NumberedChapterRegex = new(@"^第[0-9０-９一二三四五六七八九十百千]+章\s*(?<title>.+)$", RegexOptions.Compiled);
+    private static readonly Regex NumberedSectionRegex = new(@"^第[0-9０-９一二三四五六七八九十百千]+節\s*(?<title>.+)$", RegexOptions.Compiled);
+    private static readonly Regex NumberedArticleRegex = new(@"^第[0-9０-９一二三四五六七八九十百千]+条\s*(?<title>.+)$", RegexOptions.Compiled);
 
     public LawDocumentModel Parse(string markdown, string? filePath)
     {
-        var (meta, body) = FrontMatterParser.Parse(markdown);
+        var parsed = FrontMatterParser.ParseDetailed(markdown);
+        var meta = parsed.Metadata;
+        var body = parsed.Body;
+
         var chapters = new List<ChapterNode>();
         var direct = new List<ArticleNode>();
         var diagnostics = new List<DiagnosticMessage>();
@@ -28,33 +35,34 @@ public sealed class MarkdownLawParser
         while (i < lines.Length)
         {
             var line = lines[i].Trim();
-            if (line.StartsWith("# ", StringComparison.Ordinal))
+            if (string.IsNullOrWhiteSpace(line)) { i++; continue; }
+
+            if (TryParseChapterHeading(line, out var chapterTitle))
             {
                 FlushSection();
                 FlushChapter();
-                currentChapter = new ChapterNode(0, line[2..].Replace("章 ", "", StringComparison.Ordinal), new(filePath, i + 1, 1), [], []);
+                currentChapter = new ChapterNode(0, chapterTitle, new(filePath, i + 1, 1), [], []);
                 i++;
                 continue;
             }
 
-            if (line.StartsWith("## 節 ", StringComparison.Ordinal))
+            if (TryParseSectionHeading(line, out var sectionTitle))
             {
                 FlushSection();
-                currentSection = new SectionNode(0, line[5..], new(filePath, i + 1, 1), []);
+                currentSection = new SectionNode(0, sectionTitle, new(filePath, i + 1, 1), []);
                 i++;
                 continue;
             }
 
-            if (line.StartsWith("## ", StringComparison.Ordinal) || line.StartsWith("### ", StringComparison.Ordinal))
+            if (currentSection is not null && line.StartsWith("## ", StringComparison.Ordinal) && !line[3..].Trim().StartsWith("節 ", StringComparison.Ordinal) && !NumberedSectionRegex.IsMatch(line[3..].Trim()))
+            {
+                FlushSection();
+            }
+
+            if (TryParseArticleHeading(line, currentSection is not null, out var headingText))
             {
                 articleNo++;
-                var headingText = line[3..].Trim();
-                if (line.StartsWith("### ", StringComparison.Ordinal))
-                {
-                    headingText = line[4..].Trim();
-                }
-
-                var (caption, articleRefName) = ParseHeading(headingText);
+                var (caption, articleRefName) = ParseHeading(headingText, "条");
                 var articleStart = i + 1;
                 i++;
 
@@ -62,11 +70,7 @@ public sealed class MarkdownLawParser
                 while (i < lines.Length)
                 {
                     var t = lines[i].Trim();
-                    if (t.StartsWith("#", StringComparison.Ordinal))
-                    {
-                        break;
-                    }
-
+                    if (t.StartsWith("#", StringComparison.Ordinal)) break;
                     blockLines.Add((lines[i], i + 1));
                     i++;
                 }
@@ -77,19 +81,10 @@ public sealed class MarkdownLawParser
                     paragraphs.Add(new ParagraphNode(1, null, null, string.Empty, new(filePath, articleStart, 1), []));
                 }
 
-                var article = new ArticleNode(articleNo, articleRefName, caption, $"第{articleNo}条", new(filePath, articleStart, 1), paragraphs);
-                if (currentSection is not null)
-                {
-                    secArticles.Add(article);
-                }
-                else if (currentChapter is not null)
-                {
-                    chArticles.Add(article);
-                }
-                else
-                {
-                    direct.Add(article);
-                }
+                var article = new ArticleNode(articleNo, articleRefName, caption, $"第{JapaneseNumberFormatter.ToArticle(articleNo, false).Replace("第", "", StringComparison.Ordinal)}", new(filePath, articleStart, 1), paragraphs);
+                if (currentSection is not null) secArticles.Add(article);
+                else if (currentChapter is not null) chArticles.Add(article);
+                else direct.Add(article);
 
                 continue;
             }
@@ -124,10 +119,59 @@ public sealed class MarkdownLawParser
         }
     }
 
-    private static (string caption, string? referenceName) ParseHeading(string heading)
+    private static bool TryParseChapterHeading(string line, out string title)
+    {
+        title = string.Empty;
+        if (!line.StartsWith("# ", StringComparison.Ordinal)) return false;
+        var text = line[2..].Trim();
+        if (text.StartsWith("章 ", StringComparison.Ordinal)) text = text[2..].Trim();
+        var m = NumberedChapterRegex.Match(text);
+        if (m.Success) text = m.Groups["title"].Value.Trim();
+        title = text;
+        return true;
+    }
+
+    private static bool TryParseSectionHeading(string line, out string title)
+    {
+        title = string.Empty;
+        if (!line.StartsWith("## ", StringComparison.Ordinal)) return false;
+        var text = line[3..].Trim();
+        if (text.StartsWith("節 ", StringComparison.Ordinal)) { title = text[2..].Trim(); return true; }
+        var m = NumberedSectionRegex.Match(text);
+        if (m.Success) { title = m.Groups["title"].Value.Trim(); return true; }
+        return false;
+    }
+
+    private static bool TryParseArticleHeading(string line, bool insideSection, out string headingText)
+    {
+        headingText = string.Empty;
+        if (line.StartsWith("### ", StringComparison.Ordinal))
+        {
+            headingText = line[4..].Trim();
+            var m = NumberedArticleRegex.Match(headingText);
+            if (m.Success) headingText = m.Groups["title"].Value.Trim();
+            return true;
+        }
+
+        if (line.StartsWith("## ", StringComparison.Ordinal))
+        {
+            var text = line[3..].Trim();
+            headingText = text;
+            var m = NumberedArticleRegex.Match(headingText);
+            if (m.Success) headingText = m.Groups["title"].Value.Trim();
+            return true;
+        }
+
+        return false;
+    }
+
+    private static (string caption, string? referenceName) ParseHeading(string heading, string expectedKind)
     {
         var match = LabelRegex.Match(heading);
-        if (!match.Success || match.Groups[1].Value != "条")
+        if (!match.Success) return (heading.Trim(), null);
+
+        var kind = match.Groups[1].Value;
+        if (!kind.Equals(expectedKind, StringComparison.Ordinal) && !kind.Equals("a", StringComparison.OrdinalIgnoreCase))
         {
             return (heading.Trim(), null);
         }
@@ -157,7 +201,7 @@ public sealed class MarkdownLawParser
             }
 
             var paragraphLabelMatch = LabelRegex.Match(trim);
-            if (paragraphLabelMatch.Success && paragraphLabelMatch.Groups[1].Value == "項")
+            if (paragraphLabelMatch.Success && (paragraphLabelMatch.Groups[1].Value == "項" || paragraphLabelMatch.Groups[1].Value.Equals("p", StringComparison.OrdinalIgnoreCase)))
             {
                 FlushParagraph(lineNo);
                 pendingParagraphRef = paragraphLabelMatch.Groups["name"].Value.Trim();
@@ -165,23 +209,24 @@ public sealed class MarkdownLawParser
                 continue;
             }
 
-            if (TryParseItem(trim, out var itemTitle, out var itemText, out var isSubitem1))
+            if (TryParseItem(trim, out var itemTitle, out var itemText, out var isSubitem1, out var itemRefName))
             {
                 if (isSubitem1)
                 {
                     if (currentItems.Count == 0)
                     {
-                        currentItems.Add(new ItemNode(++itemNo, null, "一", string.Empty, new(filePath, lineNo, 1), []));
+                        currentItems.Add(new ItemNode(++itemNo, null, ToItemKanji(itemNo), string.Empty, new(filePath, lineNo, 1), []));
                     }
 
                     var parent = currentItems[^1];
                     var children = parent.Children.ToList();
-                    children.Add(new ItemNode(children.Count + 1, null, itemTitle, itemText, new(filePath, lineNo, 1), []));
+                    children.Add(new ItemNode(children.Count + 1, itemRefName, itemTitle, itemText, new(filePath, lineNo, 1), []));
                     currentItems[^1] = parent with { Children = children };
                 }
                 else
                 {
-                    currentItems.Add(new ItemNode(++itemNo, null, itemTitle, itemText, new(filePath, lineNo, 1), []));
+                    var nextNo = ++itemNo;
+                    currentItems.Add(new ItemNode(nextNo, itemRefName, string.IsNullOrWhiteSpace(itemTitle) ? ToItemKanji(nextNo) : itemTitle, itemText, new(filePath, lineNo, 1), []));
                 }
 
                 continue;
@@ -211,11 +256,46 @@ public sealed class MarkdownLawParser
         }
     }
 
-    private static bool TryParseItem(string text, out string title, out string sentence, out bool isSubitem1)
+    private static bool TryParseItem(string text, out string title, out string sentence, out bool isSubitem1, out string? referenceName)
     {
         title = string.Empty;
         sentence = string.Empty;
         isSubitem1 = false;
+        referenceName = null;
+
+        var labeledBullet = Regex.Match(text, @"^[-*]\s*\[(号|i):(?<name>[^\]]+)\]\s*(?<text>.+)$", RegexOptions.IgnoreCase);
+        if (labeledBullet.Success)
+        {
+            referenceName = labeledBullet.Groups["name"].Value.Trim();
+            title = string.Empty;
+            sentence = labeledBullet.Groups["text"].Value.Trim();
+            return true;
+        }
+
+        var bullet = Regex.Match(text, @"^[-*]\s*(?<text>.+)$");
+        if (bullet.Success)
+        {
+            title = string.Empty;
+            sentence = bullet.Groups["text"].Value.Trim();
+            return true;
+        }
+
+        var numbered = Regex.Match(text, @"^\d+\.\s*(?<text>.+)$");
+        if (numbered.Success)
+        {
+            title = string.Empty;
+            sentence = numbered.Groups["text"].Value.Trim();
+            return true;
+        }
+
+        var labeled = Regex.Match(text, @"^\[(号|i):(?<name>[^\]]+)\]\s*(?<text>.+)$", RegexOptions.IgnoreCase);
+        if (labeled.Success)
+        {
+            referenceName = labeled.Groups["name"].Value.Trim();
+            title = string.Empty;
+            sentence = labeled.Groups["text"].Value.Trim();
+            return true;
+        }
 
         var subitem = Regex.Match(text, @"^(?<title>[イロハニホヘトチリヌルヲワカヨタレソツネナラムウヰノオクヤマケフコエテアサキユメミシヱヒモセス])\s*[　 ](?<text>.+)$");
         if (subitem.Success)
@@ -236,4 +316,18 @@ public sealed class MarkdownLawParser
 
         return false;
     }
+
+    private static string ToItemKanji(int n) => n switch
+    {
+        1 => "一",
+        2 => "二",
+        3 => "三",
+        4 => "四",
+        5 => "五",
+        6 => "六",
+        7 => "七",
+        8 => "八",
+        9 => "九",
+        _ => n.ToString()
+    };
 }
