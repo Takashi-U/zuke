@@ -5,6 +5,30 @@ namespace Zuke.Core.Tests;
 public class StructureValidationTests
 {
     [Fact]
+    public void MainProvisionMixed_IsLmd040()
+    {
+        var md = """
+---
+lawTitle: T
+lawNum: N
+era: Reiwa
+year: 6
+num: 1
+lawType: Misc
+lang: ja
+---
+## 直条文
+本文
+
+# 総則
+## 章内条文
+本文
+""";
+        var r = TestHelpers.Compile(md);
+        Assert.Contains(r.Diagnostics, d => d.Code == "LMD040");
+    }
+
+    [Fact]
     public void ChapterSectionAndArticleMixed_IsLmd041()
     {
         var md = """
@@ -26,5 +50,25 @@ lang: ja
 """;
         var r = TestHelpers.Compile(md);
         Assert.Contains(r.Diagnostics, d => d.Code == "LMD041");
+    }
+
+    [Fact]
+    public void EmptyParagraph_IsLmd043()
+    {
+        var md = """
+---
+lawTitle: T
+lawNum: N
+era: Reiwa
+year: 6
+num: 1
+lawType: Misc
+lang: ja
+---
+## A
+[p:p1]
+""";
+        var r = TestHelpers.Compile(md);
+        Assert.Contains(r.Diagnostics, d => d.Code == "LMD043");
     }
 }

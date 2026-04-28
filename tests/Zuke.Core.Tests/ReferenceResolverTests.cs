@@ -1,4 +1,5 @@
 using Xunit;
+using Zuke.Core.Rendering;
 
 namespace Zuke.Core.Tests;
 
@@ -34,5 +35,14 @@ lang: ja
         var r = TestHelpers.Compile(md);
         var diag = Assert.Single(r.Diagnostics, d => d.Code == "LMD022");
         Assert.True(diag.RelatedLocations.Count >= 2);
+    }
+
+    [Fact]
+    public void ItemReference_RendersFullPath()
+    {
+        var md = TestHelpers.ReadFixture("item-reference.md");
+        var lawtext = TestHelpers.RenderLawtext(md);
+        Assert.Contains("第二号", lawtext);
+        Assert.Contains("第一項", lawtext);
     }
 }

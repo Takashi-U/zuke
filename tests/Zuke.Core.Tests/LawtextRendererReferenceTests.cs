@@ -13,7 +13,7 @@ public class LawtextRendererReferenceTests
         var fullLawtext = TestHelpers.RenderLawtext(fullMd);
         var relativeLawtext = TestHelpers.RenderLawtext(relativeMd);
 
-        Assert.Contains("第1条第1項に基づく", fullLawtext);
+        Assert.Contains("第一条第一項に基づく", fullLawtext);
         Assert.Contains("前項に基づく", relativeLawtext);
         Assert.DoesNotContain("{{参照:", fullLawtext + relativeLawtext);
         Assert.DoesNotContain("{{ref:", fullLawtext + relativeLawtext);

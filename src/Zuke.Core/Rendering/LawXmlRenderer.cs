@@ -40,12 +40,16 @@ public sealed class LawXmlRenderer
         var elements = new List<object>
         {
             new XAttribute("Num", a.Number),
-            new XElement("ArticleTitle", a.ArticleTitle)
+            new XElement("ArticleTitle", $"第{ToKanji(a.Number)}条")
         };
 
         if (!string.IsNullOrWhiteSpace(a.Caption))
         {
-            elements.Insert(1, new XElement("ArticleCaption", $"（{a.Caption}）"));
+            var cap = a.Caption.Trim();
+            if (!string.IsNullOrWhiteSpace(cap))
+            {
+                elements.Insert(1, new XElement("ArticleCaption", $"（{cap}）"));
+            }
         }
 
         elements.AddRange(a.Paragraphs.Select(RenderParagraph));
@@ -53,11 +57,14 @@ public sealed class LawXmlRenderer
     }
 
     private static XElement RenderParagraph(ParagraphNode p)
-        => new("Paragraph", new XAttribute("Num", p.Number), string.IsNullOrEmpty(p.ParagraphNumText) ? new XElement("ParagraphNum") : new XElement("ParagraphNum", p.ParagraphNumText), new XElement("ParagraphSentence", new XElement("Sentence", new XAttribute("Num", 1), p.SentenceText)), p.Items.Select(RenderItem));
+    {
+        var sentence = string.IsNullOrWhiteSpace(p.SentenceText) ? string.Empty : p.SentenceText;
+        return new("Paragraph", new XAttribute("Num", p.Number), string.IsNullOrEmpty(p.ParagraphNumText) ? new XElement("ParagraphNum") : new XElement("ParagraphNum", p.ParagraphNumText), new XElement("ParagraphSentence", new XElement("Sentence", new XAttribute("Num", 1), sentence)), p.Items.Select(RenderItem));
+    }
 
     private static XElement RenderItem(ItemNode i)
     {
-        var e = new XElement("Item", new XAttribute("Num", i.Number), new XElement("ItemTitle", string.IsNullOrWhiteSpace(i.ItemTitle) ? ToKanji(i.Number) : i.ItemTitle), new XElement("ItemSentence", new XElement("Sentence", new XAttribute("Num", 1), i.SentenceText)));
+        var e = new XElement("Item", new XAttribute("Num", i.Number), new XElement("ItemTitle", ToKanji(i.Number)), new XElement("ItemSentence", new XElement("Sentence", new XAttribute("Num", 1), i.SentenceText)));
         foreach (var child in i.Children)
         {
             e.Add(new XElement("Subitem1", new XAttribute("Num", child.Number), new XElement("Subitem1Title", child.ItemTitle), new XElement("Subitem1Sentence", new XElement("Sentence", new XAttribute("Num", 1), child.SentenceText))));

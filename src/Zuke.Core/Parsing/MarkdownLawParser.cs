@@ -75,7 +75,7 @@ public sealed class MarkdownLawParser
                     i++;
                 }
 
-                var paragraphs = ParseParagraphs(blockLines, filePath);
+                var paragraphs = ParseParagraphs(blockLines, filePath, diagnostics);
                 if (paragraphs.Count == 0)
                 {
                     paragraphs.Add(new ParagraphNode(1, null, null, string.Empty, new(filePath, articleStart, 1), []));
@@ -181,7 +181,7 @@ public sealed class MarkdownLawParser
         return (caption, name);
     }
 
-    private static List<ParagraphNode> ParseParagraphs(List<(string line, int sourceLine)> blockLines, string? filePath)
+    private static List<ParagraphNode> ParseParagraphs(List<(string line, int sourceLine)> blockLines, string? filePath, List<DiagnosticMessage> diagnostics)
     {
         var paragraphs = new List<ParagraphNode>();
         string? pendingParagraphRef = null;
@@ -232,6 +232,12 @@ public sealed class MarkdownLawParser
                 continue;
             }
 
+            if (trim.StartsWith("|", StringComparison.Ordinal) || trim.StartsWith("<", StringComparison.Ordinal))
+            {
+                diagnostics.Add(new(DiagnosticSeverity.Error, "LMD046", "未対応のMarkdown要素があります。", new(filePath, lineNo, 1), []));
+                continue;
+            }
+
             currentSentence.Add(trim);
         }
 
@@ -267,7 +273,6 @@ public sealed class MarkdownLawParser
         if (labeledBullet.Success)
         {
             referenceName = labeledBullet.Groups["name"].Value.Trim();
-            title = string.Empty;
             sentence = labeledBullet.Groups["text"].Value.Trim();
             return true;
         }
@@ -275,7 +280,6 @@ public sealed class MarkdownLawParser
         var bullet = Regex.Match(text, @"^[-*]\s*(?<text>.+)$");
         if (bullet.Success)
         {
-            title = string.Empty;
             sentence = bullet.Groups["text"].Value.Trim();
             return true;
         }
@@ -283,7 +287,6 @@ public sealed class MarkdownLawParser
         var numbered = Regex.Match(text, @"^\d+\.\s*(?<text>.+)$");
         if (numbered.Success)
         {
-            title = string.Empty;
             sentence = numbered.Groups["text"].Value.Trim();
             return true;
         }
@@ -292,7 +295,6 @@ public sealed class MarkdownLawParser
         if (labeled.Success)
         {
             referenceName = labeled.Groups["name"].Value.Trim();
-            title = string.Empty;
             sentence = labeled.Groups["text"].Value.Trim();
             return true;
         }
@@ -309,7 +311,6 @@ public sealed class MarkdownLawParser
         var item = Regex.Match(text, @"^(?<title>[一二三四五六七八九十]+)\s*[　 ](?<text>.+)$");
         if (item.Success)
         {
-            title = item.Groups["title"].Value;
             sentence = item.Groups["text"].Value.Trim();
             return true;
         }

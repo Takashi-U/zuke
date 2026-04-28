@@ -29,7 +29,7 @@ public sealed class ReferenceTableBuilder
         {
             if (string.IsNullOrWhiteSpace(rawName)) return;
             var loc = location ?? new SourceLocation(null, 1, 1);
-            if (!TryNormalizeName(rawName, out var normalized))
+            if (!ReferenceNameNormalizer.TryNormalize(rawName, out var normalized))
             {
                 diags.Add(new(DiagnosticSeverity.Error, "LMD023", $"参照名に禁止文字が含まれています: {rawName}", loc, []));
                 return;
@@ -43,12 +43,6 @@ public sealed class ReferenceTableBuilder
 
             table[normalized] = new(rawName, normalized, kind, loc, articleNumber, paragraphNumber, itemNumber);
         }
-    }
-
-    private static bool TryNormalizeName(string raw, out string normalized)
-    {
-        normalized = raw.Trim().Normalize(NormalizationForm.FormKC).ToLowerInvariant();
-        return normalized.IndexOfAny(['{', '}', '|', '[', ']', '<', '>', '"']) < 0;
     }
 
     private static IEnumerable<ArticleNode> EnumerateArticles(LawDocumentModel model)

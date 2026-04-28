@@ -28,4 +28,13 @@ lang: ja
         var r = TestHelpers.Compile(md);
         Assert.Contains(r.Diagnostics, d => d.Code == "LMD027");
     }
+
+    [Fact]
+    public void RelativeReferenceSuccesses_RenderAsMaejoMaeKoMaego()
+    {
+        var lawtext = TestHelpers.RenderLawtext(TestHelpers.ReadFixture("relative-references.md"));
+        Assert.Contains("前条", lawtext);
+        Assert.Contains("前項", lawtext);
+        Assert.Contains("前号", lawtext);
+    }
 }
