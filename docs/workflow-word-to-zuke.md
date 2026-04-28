@@ -9,6 +9,15 @@
 7. zuke convertでLawtext/XMLへ出力する
 8. Lawtext-app等でWordへ戻す
 
+## 実行コマンド例
+
+```bash
+zuke audit samples/import-source.law.txt
+zuke import samples/import-source.law.txt -o imported.md --report import-report.md --map import-map.json
+zuke convert imported.md --to both --xml-output imported.xml --lawtext-output imported.law.txt
+zuke diff before.md imported.md --view unified
+```
+
 ## 注意点
 - zuke importは元Markdownの完全復元ではない
 - 参照名は自動生成される
