@@ -24,10 +24,14 @@ public sealed class LawtextAuditService
         for (var i = 0; i < lines.Length; i++)
         {
             var line = lines[i].Trim();
-            if (Regex.IsMatch(line, @"^\d+\s*/\s*\d+$") || line.Contains("Page", StringComparison.OrdinalIgnoreCase))
+            if (Regex.IsMatch(line, @"^\d+\s*/\s*\d+$") || Regex.IsMatch(line, @"^-\s*\d+\s*-$") || Regex.IsMatch(line, @"^ページ\s*\d+$") || line.Contains("Page", StringComparison.OrdinalIgnoreCase))
                 Add("LMD099", "Word由来のヘッダー/フッター/ページ番号らしき行です。", i + 1);
             if (line.Contains("第一条", StringComparison.Ordinal) && !line.StartsWith("第一条", StringComparison.Ordinal))
                 Add("LMD099", "本文途中に条番号らしき表現があります。", i + 1);
+            if (Regex.IsMatch(line, @"^第.+条の.+"))
+                Add("LMD092", "枝番付き条番号参照/条文はMVP未対応です。", i + 1);
+            if (Regex.IsMatch(line, @"^（.+）$") && (i + 1 >= lines.Length || !Regex.IsMatch(lines[i + 1].Trim(), @"^第.+条")))
+                Add("LMD099", "ArticleCaptionらしき行の直後に条文がありません。", i + 1);
         }
 
         return new LawtextAuditResult(all);

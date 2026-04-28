@@ -191,7 +191,10 @@ zuke audit input.law.txt
 ## Lawtext import（補強）
 
 - `--reference-labels` の既定値は `all` です。
+- 既定値を `all` にする理由は、初回import時点で参照先の明示性と追跡可能性を優先し、後続の手修正を安全にするためです。
 - `--reference-labels used` は参照されている項・号を中心にラベルを出力します（条は常に出力）。
+- `--reference-labels none` はラベルを完全に省略し、人手で命名・再整理する前提の運用向けです。
+- import後の参照名は自動生成であり、必要に応じて人間がリネームできます。
 - `--report <PATH>` でインポート結果レポート（Markdown）を出力できます。
 - `--map <PATH>` で Lawtext行↔Markdown行 の対応JSONを出力できます。
 - import後Markdownは再コンパイル・再レンダリング検証されます。
