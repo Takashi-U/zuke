@@ -58,4 +58,87 @@ lang: ja
         var result = TestHelpers.Compile(md);
         Assert.Contains(result.Diagnostics, d => d.Code == expectedCode);
     }
+
+    [Theory]
+    [InlineData("{{参照:第3条}}", "LMD020")]
+    [InlineData("{{参照:第三条}}", "LMD020")]
+    [InlineData("{{ref:article-3}}", "LMD020")]
+    public void IgnoresNumericPatternsInsideReferenceMacros(string macroText, string code)
+    {
+        var md = $$"""
+---
+lawTitle: T
+lawNum: N
+era: Reiwa
+year: 6
+num: 1
+lawType: Misc
+lang: ja
+---
+## 第一条
+{{macroText}}に従う。
+""";
+        var result = TestHelpers.Compile(md);
+        Assert.DoesNotContain(result.Diagnostics, d => d.Code == code);
+    }
+
+    [Fact]
+    public void DetectsNumericPatternInNormalBodyText()
+    {
+        var md = """
+---
+lawTitle: T
+lawNum: N
+era: Reiwa
+year: 6
+num: 1
+lawType: Misc
+lang: ja
+---
+## 第一条
+第3条に従う。
+""";
+        var result = TestHelpers.Compile(md);
+        Assert.Contains(result.Diagnostics, d => d.Code == "LMD020");
+    }
+
+    [Fact]
+    public void IgnoresRelativePatternsInsideReferenceMacros()
+    {
+        var md = """
+---
+lawTitle: T
+lawNum: N
+era: Reiwa
+year: 6
+num: 1
+lawType: Misc
+lang: ja
+---
+## 第一条
+{{参照:前項}}に従う。
+""";
+        var result = TestHelpers.Compile(md);
+        Assert.DoesNotContain(result.Diagnostics, d => d.Code == "LMD028");
+    }
+
+    [Fact]
+    public void DetectsRelativePatternInNormalBodyText()
+    {
+        var md = """
+---
+lawTitle: T
+lawNum: N
+era: Reiwa
+year: 6
+num: 1
+lawType: Misc
+lang: ja
+---
+## 第一条
+前項に従う。
+""";
+        var result = TestHelpers.Compile(md);
+        Assert.Contains(result.Diagnostics, d => d.Code == "LMD028");
+    }
 }
