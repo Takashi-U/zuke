@@ -176,3 +176,29 @@ zuke import input.law.txt -o output.md
 - `--metadata-mode frontmatter|none`
 - `--strict`
 - `--skip-roundtrip-check`
+
+## Lawtext audit
+
+```bash
+zuke audit input.law.txt
+```
+
+- AIが生成したLawtextの構造と参照を検査します。
+- Word由来の変換ミスを検出する補助機能です。
+- 完全な法的正確性を保証するものではありません。
+- 人間による確認を前提とします。
+
+## Lawtext import（補強）
+
+- `--reference-labels` の既定値は `all` です。
+- `--reference-labels used` は参照されている項・号を中心にラベルを出力します（条は常に出力）。
+- `--report <PATH>` でインポート結果レポート（Markdown）を出力できます。
+- `--map <PATH>` で Lawtext行↔Markdown行 の対応JSONを出力できます。
+- import後Markdownは再コンパイル・再レンダリング検証されます。
+- `--skip-roundtrip-check` は非推奨です。
+
+## XMLとLawtextの同時出力
+
+```bash
+zuke convert input.md --to both --xml-output output.xml --lawtext-output output.law.txt
+```
