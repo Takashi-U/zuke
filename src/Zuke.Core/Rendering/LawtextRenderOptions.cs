@@ -10,6 +10,7 @@ public sealed record LawtextRenderOptions
     public bool TrimTrailingWhitespace { get; init; } = true;
     public bool IncludeLawNum { get; init; } = true;
     public bool IncludeBlankLineBetweenBlocks { get; init; } = true;
+    public bool ArabicNumbers { get; init; }
 }
 
 public sealed record LawtextLayoutOptions

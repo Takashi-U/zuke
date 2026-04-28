@@ -81,7 +81,7 @@ public sealed class MarkdownLawParser
                     paragraphs.Add(new ParagraphNode(1, null, null, string.Empty, new(filePath, articleStart, 1), []));
                 }
 
-                var article = new ArticleNode(articleNo, articleRefName, caption, $"第{JapaneseNumberFormatter.ToArticle(articleNo, false).Replace("第", "", StringComparison.Ordinal)}", new(filePath, articleStart, 1), paragraphs);
+                var article = new ArticleNode(articleNo, articleRefName, caption, JapaneseNumberFormatter.ToArticle(articleNo, false), new(filePath, articleStart, 1), paragraphs);
                 if (currentSection is not null) secArticles.Add(article);
                 else if (currentChapter is not null) chArticles.Add(article);
                 else direct.Add(article);
@@ -215,7 +215,7 @@ public sealed class MarkdownLawParser
                 {
                     if (currentItems.Count == 0)
                     {
-                        currentItems.Add(new ItemNode(++itemNo, null, ToItemKanji(itemNo), string.Empty, new(filePath, lineNo, 1), []));
+                        currentItems.Add(new ItemNode(++itemNo, null, JapaneseNumberFormatter.ToItemTitle(itemNo, false), string.Empty, new(filePath, lineNo, 1), []));
                     }
 
                     var parent = currentItems[^1];
@@ -226,7 +226,7 @@ public sealed class MarkdownLawParser
                 else
                 {
                     var nextNo = ++itemNo;
-                    currentItems.Add(new ItemNode(nextNo, itemRefName, string.IsNullOrWhiteSpace(itemTitle) ? ToItemKanji(nextNo) : itemTitle, itemText, new(filePath, lineNo, 1), []));
+                    currentItems.Add(new ItemNode(nextNo, itemRefName, string.IsNullOrWhiteSpace(itemTitle) ? JapaneseNumberFormatter.ToItemTitle(nextNo, false) : itemTitle, itemText, new(filePath, lineNo, 1), []));
                 }
 
                 continue;
@@ -317,18 +317,4 @@ public sealed class MarkdownLawParser
 
         return false;
     }
-
-    private static string ToItemKanji(int n) => n switch
-    {
-        1 => "一",
-        2 => "二",
-        3 => "三",
-        4 => "四",
-        5 => "五",
-        6 => "六",
-        7 => "七",
-        8 => "八",
-        9 => "九",
-        _ => n.ToString()
-    };
 }

@@ -35,7 +35,7 @@ public sealed class ConvertCommand : Command<ConvertCommand.Settings>
         if (settings.To == "lawtext")
         {
             var renderer = new LawtextRenderer();
-            var lawtext = renderer.Render(result.Document, LawtextRenderOptions.Default);
+            var lawtext = renderer.Render(result.Document, LawtextRenderOptions.Default with { ArabicNumbers = settings.NumberStyle == "arabic" });
             var renderDiags = LawtextRenderer.ValidateRenderedText(lawtext);
             reporter.ReportDiagnostics(renderDiags);
             if (renderDiags.Any(x => x.Severity == Zuke.Core.Model.DiagnosticSeverity.Error)) return 1;
@@ -45,7 +45,7 @@ public sealed class ConvertCommand : Command<ConvertCommand.Settings>
             return 0;
         }
 
-        var doc = new LawXmlRenderer().Render(result.Document.Document);
+        var doc = new LawXmlRenderer().Render(result.Document.Document, LawXmlRenderOptions.Default with { ArabicNumbers = settings.NumberStyle == "arabic" });
         if (!settings.SkipValidation)
         {
             var xsd = settings.Xsd ?? ZukeXsdProvider.ResolveDefaultPath();

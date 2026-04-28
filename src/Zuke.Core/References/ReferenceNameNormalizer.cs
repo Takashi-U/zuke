@@ -10,7 +10,10 @@ public static class ReferenceNameNormalizer
         if (string.IsNullOrWhiteSpace(raw)) return false;
 
         var folded = ToAscii(raw.Trim().Normalize(NormalizationForm.FormKC));
-        if (folded.IndexOfAny(['{', '}', '|', '[', ']', '<', '>', '"']) >= 0) return false;
+        if (folded.IndexOfAny([' ', '\u3000', '\r', '\n', ':', '|', '{', '}', '[', ']', '(', ')', '：', '（', '）']) >= 0)
+        {
+            return false;
+        }
 
         normalized = folded.ToLowerInvariant();
         return normalized.Length > 0;

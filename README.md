@@ -39,6 +39,10 @@ zuke convert input.md -o output.law.txt --to lawtext
 # Lawtextコマンド（ショートカット）
 zuke lawtext input.md -o output.law.txt
 
+# 番号表記（既定: kanji）
+zuke convert input.md -o output.xml --to xml --number-style kanji
+zuke convert input.md -o output.xml --to xml --number-style arabic
+
 # diff
 zuke diff old.md new.md --view unified
 zuke diff old.md new.md --view terminal
@@ -96,6 +100,13 @@ zuke diff old.md new.md --view html -o diff.html
 ## Lawtext出力
 
 Lawtext出力後、未解決の参照マクロ・参照ラベル・絵文字（🍣）が残っているとエラー（LMD064 / LMD065）になります。
+
+## --number-style
+
+- 既定値は `kanji` です。
+- `--number-style kanji` の場合、条・章・節・号・参照表現は漢数字で出力されます（例: `第一条`）。
+- `--number-style arabic` の場合、条・章・節・号・参照表現は算用数字で出力されます（例: `第1条`）。
+- この挙動は法令XML出力とLawtext出力で一貫します。
 
 ## diff
 
