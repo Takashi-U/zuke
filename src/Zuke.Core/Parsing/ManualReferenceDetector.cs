@@ -5,13 +5,24 @@ namespace Zuke.Core.Parsing;
 
 public static class ManualReferenceDetector
 {
-    private static readonly Regex R = new(@"(第\d+条(第\d+項)?|前条|前項|前号)", RegexOptions.Compiled);
+    private static readonly Regex NumericReferenceRegex = new(
+        @"(第(?:\d+|[一二三四五六七八九十百千]+)条(?:第(?:\d+|[一二三四五六七八九十百千]+)項)?|第(?:\d+|[一二三四五六七八九十百千]+)項|第(?:\d+|[一二三四五六七八九十百千]+)号)",
+        RegexOptions.Compiled);
+
+    private static readonly Regex RelativeReferenceRegex = new(
+        @"(前条|前項|前号|次条|次項|次号|同条|同項|同号)",
+        RegexOptions.Compiled);
 
     public static IEnumerable<DiagnosticMessage> Detect(string text, SourceLocation loc, bool strict)
     {
-        if (R.IsMatch(text))
+        if (NumericReferenceRegex.IsMatch(text))
         {
             yield return new(strict ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning, "LMD020", "手書きの番号参照があります。", loc, Array.Empty<SourceLocation>());
+        }
+
+        if (RelativeReferenceRegex.IsMatch(text))
+        {
+            yield return new(strict ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning, "LMD028", "手書きの相対参照があります。", loc, Array.Empty<SourceLocation>());
         }
     }
 }

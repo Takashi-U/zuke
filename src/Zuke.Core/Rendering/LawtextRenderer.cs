@@ -1,4 +1,5 @@
 using Zuke.Core.Model;
+using Zuke.Core.Numbering;
 
 namespace Zuke.Core.Rendering;
 
@@ -37,7 +38,7 @@ public sealed class LawtextRenderer
             }
 
             writer.WriteLine(LawtextLineKind.ChapterTitle,
-                $"{options.Layout.ChapterIndent}第{ToKanji(chapter.Number)}章{options.Layout.Separator}{chapter.Title}");
+                $"{options.Layout.ChapterIndent}{JapaneseNumberFormatter.ToChapter(chapter.Number, options.ArabicNumbers)}{options.Layout.Separator}{chapter.Title}");
             hasAnyTopLevelBlock = true;
 
             foreach (var section in chapter.Sections)
@@ -48,7 +49,7 @@ public sealed class LawtextRenderer
                 }
 
                 writer.WriteLine(LawtextLineKind.SectionTitle,
-                    $"{options.Layout.SectionIndent}第{ToKanji(section.Number)}節{options.Layout.Separator}{section.Title}");
+                    $"{options.Layout.SectionIndent}{JapaneseNumberFormatter.ToSection(section.Number, options.ArabicNumbers)}{options.Layout.Separator}{section.Title}");
 
                 foreach (var article in section.Articles)
                 {
@@ -149,7 +150,7 @@ public sealed class LawtextRenderer
         foreach (var item in items)
         {
             writer.WriteLine(LawtextLineKind.Item,
-                $"{options.Layout.ItemIndent}{ToKanji(item.Number)}{options.Layout.Separator}{item.SentenceText}");
+                $"{options.Layout.ItemIndent}{JapaneseNumberFormatter.ToItemTitle(item.Number, options.ArabicNumbers)}{options.Layout.Separator}{item.SentenceText}");
 
             foreach (var subitem in item.Children)
             {
@@ -157,25 +158,6 @@ public sealed class LawtextRenderer
                     $"{options.Layout.Subitem1Indent}{subitem.ItemTitle}{options.Layout.Separator}{subitem.SentenceText}");
             }
         }
-    }
-
-    private static string ToKanji(int n)
-    {
-        if (n <= 0) return "一";
-        return n switch
-        {
-            1 => "一",
-            2 => "二",
-            3 => "三",
-            4 => "四",
-            5 => "五",
-            6 => "六",
-            7 => "七",
-            8 => "八",
-            9 => "九",
-            10 => "十",
-            _ => n.ToString()
-        };
     }
 
     private static string ToFullWidth(int n) => n.ToString()

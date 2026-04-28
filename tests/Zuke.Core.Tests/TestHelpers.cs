@@ -9,24 +9,24 @@ public static class TestHelpers
 {
     public static string RepoRoot { get; } = ResolveRepoRoot();
 
-    public static CompileResult Compile(string? markdown = null, bool strict = false)
+    public static CompileResult Compile(string? markdown = null, bool strict = false, bool arabicNumbers = false)
     {
         markdown ??= ReadFixture("minimal.md");
-        return new LawMarkdownCompiler().Compile(markdown, "test.md", new CompileOptions(strict));
+        return new LawMarkdownCompiler().Compile(markdown, "test.md", new CompileOptions(strict, arabicNumbers));
     }
 
     public static string ReadFixture(string fileName)
         => File.ReadAllText(Path.Combine(RepoRoot, "tests", "Zuke.Core.Tests", "Fixtures", "Lawtext", fileName), Encoding.UTF8);
 
-    public static string RenderLawtext(string markdown)
+    public static string RenderLawtext(string markdown, bool arabicNumbers = false)
     {
-        var result = Compile(markdown);
+        var result = Compile(markdown, arabicNumbers: arabicNumbers);
         if (result.HasErrors || result.Document is null)
         {
             throw new InvalidOperationException(string.Join("\n", result.Diagnostics.Select(x => $"{x.Code}:{x.Message}")));
         }
 
-        return new LawtextRenderer().Render(result.Document, LawtextRenderOptions.Default);
+        return new LawtextRenderer().Render(result.Document, LawtextRenderOptions.Default with { ArabicNumbers = arabicNumbers });
     }
 
     public static (int ExitCode, string StdOut, string StdErr) RunProcess(string fileName, string args, string? workdir = null)
