@@ -269,7 +269,7 @@ public sealed class MarkdownLawParser
         isSubitem1 = false;
         referenceName = null;
 
-        var labeledBullet = Regex.Match(text, @"^[-*]\s*\[(号|i):(?<name>[^\]]+)\]\s*(?<text>.+)$", RegexOptions.IgnoreCase);
+        var labeledBullet = Regex.Match(text, @"^(?:[-*]|・)\s*\[(号|i):(?<name>[^\]]+)\]\s*(?<text>.+)$", RegexOptions.IgnoreCase);
         if (labeledBullet.Success)
         {
             referenceName = labeledBullet.Groups["name"].Value.Trim();
@@ -277,7 +277,7 @@ public sealed class MarkdownLawParser
             return true;
         }
 
-        var bullet = Regex.Match(text, @"^[-*]\s*(?<text>.+)$");
+        var bullet = Regex.Match(text, @"^(?:[-*]|・)\s*(?<text>.+)$");
         if (bullet.Success)
         {
             sentence = bullet.Groups["text"].Value.Trim();
