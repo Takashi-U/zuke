@@ -149,7 +149,7 @@ public sealed class LawtextRenderer
         foreach (var item in items)
         {
             writer.WriteLine(LawtextLineKind.Item,
-                $"{options.Layout.ItemIndent}{item.ItemTitle}{options.Layout.Separator}{item.SentenceText}");
+                $"{options.Layout.ItemIndent}{ToKanji(item.Number)}{options.Layout.Separator}{item.SentenceText}");
 
             foreach (var subitem in item.Children)
             {

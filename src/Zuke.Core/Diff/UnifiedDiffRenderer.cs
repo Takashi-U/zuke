@@ -6,14 +6,16 @@ public sealed class UnifiedDiffRenderer
 {
     public string Render(string oldName, string newName, DiffResult r)
     {
-        if (!r.HasChanges)
-        {
-            return $"--- {oldName}\n+++ {newName}\n差分はありません。\n";
-        }
-
         var sb = new StringBuilder();
         sb.AppendLine($"--- {oldName}");
         sb.AppendLine($"+++ {newName}");
+
+        if (!r.HasChanges || r.Hunks.Count == 0)
+        {
+            sb.AppendLine("(差分なし)");
+            return sb.ToString();
+        }
+
         foreach (var hunk in r.Hunks)
         {
             sb.AppendLine(hunk.Header);

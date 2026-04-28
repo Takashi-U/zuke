@@ -1,4 +1,3 @@
-using System.Text;
 using Zuke.Core.Model;
 using Zuke.Core.Parsing;
 
@@ -50,7 +49,11 @@ public sealed class ReferenceResolver
         return ReferenceParser.RefRegex.Replace(text, m =>
         {
             var rawName = m.Groups["name"].Value.Trim();
-            var normalized = rawName.Trim().Normalize(NormalizationForm.FormKC).ToLowerInvariant();
+            if (!ReferenceNameNormalizer.TryNormalize(rawName, out var normalized))
+            {
+                diags.Add(new(DiagnosticSeverity.Error, "LMD023", $"参照名に禁止文字が含まれています: {rawName}", loc, []));
+                return rawName;
+            }
             var rawOpt = m.Groups["opt"].Value.Trim();
             if (!ReferenceParser.TryParseOption(rawOpt, out var option))
             {
@@ -87,8 +90,9 @@ public sealed class ReferenceResolver
 
             return option switch
             {
-                ReferenceOption.ArticleOnly => $"第{target.ArticleNumber}条",
+                ReferenceOption.ArticleOnly => $"第{ToKanji(target.ArticleNumber)}条",
                 ReferenceOption.Full => RenderFull(target),
+                ReferenceOption.Auto => RenderAuto(target),
                 _ => RenderAuto(target)
             };
         });
@@ -98,12 +102,27 @@ public sealed class ReferenceResolver
     {
         return target.Kind switch
         {
-            LawElementKind.Article => $"第{target.ArticleNumber}条",
-            LawElementKind.Paragraph => $"第{target.ArticleNumber}条第{target.ParagraphNumber}項",
-            LawElementKind.Item => $"第{target.ArticleNumber}条第{target.ParagraphNumber}項第{target.ItemNumber}号",
+            LawElementKind.Article => $"第{ToKanji(target.ArticleNumber)}条",
+            LawElementKind.Paragraph => $"第{ToKanji(target.ArticleNumber)}条第{ToKanji(target.ParagraphNumber ?? 1)}項",
+            LawElementKind.Item => $"第{ToKanji(target.ArticleNumber)}条第{ToKanji(target.ParagraphNumber ?? 1)}項第{ToKanji(target.ItemNumber ?? 1)}号",
             _ => target.RawName
         };
     }
 
     private static string RenderFull(ReferenceDefinition target) => RenderAuto(target);
+
+    private static string ToKanji(int n) => n switch
+    {
+        1 => "一",
+        2 => "二",
+        3 => "三",
+        4 => "四",
+        5 => "五",
+        6 => "六",
+        7 => "七",
+        8 => "八",
+        9 => "九",
+        10 => "十",
+        _ => n.ToString()
+    };
 }
