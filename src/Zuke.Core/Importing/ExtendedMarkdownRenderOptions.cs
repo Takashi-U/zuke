@@ -1,5 +1,6 @@
 namespace Zuke.Core.Importing;
 
 public sealed record ExtendedMarkdownRenderOptions(
-    string ReferenceLabels = "used",
-    string MetadataMode = "frontmatter");
+    string ReferenceLabels = "all",
+    string MetadataMode = "frontmatter",
+    ISet<string>? UsedRefs = null);

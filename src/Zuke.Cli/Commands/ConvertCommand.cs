@@ -17,6 +17,8 @@ public sealed class ConvertCommand : Command<ConvertCommand.Settings>
         [CommandOption("--skip-validation")] public bool SkipValidation { get; set; }
         [CommandOption("--xsd <PATH>")] public string? Xsd { get; set; }
         [CommandOption("--strict")] public bool Strict { get; set; }
+        [CommandOption("--xml-output <PATH>")] public string? XmlOutput { get; set; }
+        [CommandOption("--lawtext-output <PATH>")] public string? LawtextOutput { get; set; }
         [CommandOption("--number-style <STYLE>")] public string NumberStyle { get; set; } = "kanji";
         [CommandOption("--emoji <MODE>")] public string Emoji { get; set; } = "auto";
         [CommandOption("--no-color")] public bool NoColor { get; set; }
@@ -31,6 +33,31 @@ public sealed class ConvertCommand : Command<ConvertCommand.Settings>
         var result = new LawMarkdownCompiler().Compile(text, settings.Input, new CompileOptions(settings.Strict, settings.NumberStyle == "arabic"));
         reporter.ReportDiagnostics(result.Diagnostics);
         if (result.HasErrors || result.Document is null) return 1;
+
+
+        if (settings.To == "both")
+        {
+            if (string.IsNullOrWhiteSpace(settings.XmlOutput) || string.IsNullOrWhiteSpace(settings.LawtextOutput) || !string.IsNullOrWhiteSpace(settings.Output))
+            {
+                reporter.Info("--to both では --xml-output と --lawtext-output が必須で、-o は使用できません。");
+                return 1;
+            }
+            var lawtext = new LawtextRenderer().Render(result.Document, LawtextRenderOptions.Default with { ArabicNumbers = settings.NumberStyle == "arabic" });
+            var renderDiags = LawtextRenderer.ValidateRenderedText(lawtext);
+            reporter.ReportDiagnostics(renderDiags);
+            if (renderDiags.Any(x => x.Severity == Zuke.Core.Model.DiagnosticSeverity.Error)) return 1;
+            var docBoth = new LawXmlRenderer().Render(result.Document.Document, LawXmlRenderOptions.Default with { ArabicNumbers = settings.NumberStyle == "arabic" });
+            if (!settings.SkipValidation)
+            {
+                var xsd = settings.Xsd ?? ZukeXsdProvider.ResolveDefaultPath();
+                var diags = new LawXmlValidator().Validate(docBoth, xsd);
+                reporter.ReportDiagnostics(diags);
+                if (diags.Any(x => x.Severity == Zuke.Core.Model.DiagnosticSeverity.Error)) return 1;
+            }
+            docBoth.Save(settings.XmlOutput);
+            File.WriteAllText(settings.LawtextOutput, lawtext, new System.Text.UTF8Encoding(false));
+            return 0;
+        }
 
         if (settings.To == "lawtext")
         {

@@ -5,75 +5,34 @@ namespace Zuke.Core.Importing;
 
 public sealed class ExtendedMarkdownRenderer
 {
-    public string Render(LawDocumentModel model, ExtendedMarkdownRenderOptions options)
+    public (string Markdown, List<ImportMappingItem> MappingItems) Render(LawDocumentModel model, ExtendedMarkdownRenderOptions options)
     {
         var sb = new StringBuilder();
+        var mapping = new List<ImportMappingItem>();
         if (options.MetadataMode.Equals("frontmatter", StringComparison.OrdinalIgnoreCase))
         {
-            sb.AppendLine("---");
-            sb.AppendLine($"lawTitle: {model.Metadata.LawTitle}");
-            sb.AppendLine($"lawNum: {model.Metadata.LawNum}");
-            sb.AppendLine($"era: {model.Metadata.Era}");
-            sb.AppendLine($"year: {model.Metadata.Year}");
-            sb.AppendLine($"num: {model.Metadata.Num}");
-            sb.AppendLine($"lawType: {model.Metadata.LawType}");
-            sb.AppendLine($"lang: {model.Metadata.Lang}");
-            sb.AppendLine("---");
-            sb.AppendLine();
+            Append("---"); Append($"lawTitle: {model.Metadata.LawTitle}"); Append($"lawNum: {model.Metadata.LawNum}"); Append($"era: {model.Metadata.Era}"); Append($"year: {model.Metadata.Year}"); Append($"num: {model.Metadata.Num}"); Append($"lawType: {model.Metadata.LawType}"); Append($"lang: {model.Metadata.Lang}"); Append("---"); Append("");
         }
+        foreach (var chapter in model.Chapters){ Append($"# {chapter.Title}"); Append(""); foreach (var section in chapter.Sections){ Append($"## 節 {section.Title}"); Append(""); foreach (var a in section.Articles) RenderArticle(a);} foreach (var a in chapter.Articles) RenderArticle(a);} foreach (var a in model.DirectArticles) RenderArticle(a);
+        return (sb.ToString().Replace("\r\n","\n"), mapping);
 
-        foreach (var chapter in model.Chapters)
+        void RenderArticle(ArticleNode article)
         {
-            sb.AppendLine($"# {chapter.Title}");
-            sb.AppendLine();
-            foreach (var section in chapter.Sections)
+            var label = ShouldLabel(article.ReferenceName, true) ? $" [条:{article.ReferenceName}]" : "";
+            Append($"### {(string.IsNullOrWhiteSpace(article.Caption) ? $"条 {article.ReferenceName}" : article.Caption)}{label}");
+            mapping.Add(new("Article", article.Location?.Line ?? 1, GetLineNo(), $"第{article.Number}条", article.ReferenceName, article.Caption));
+            Append("");
+            foreach (var p in article.Paragraphs)
             {
-                sb.AppendLine($"## 節 {section.Title}");
-                sb.AppendLine();
-                foreach (var article in section.Articles)
-                {
-                    RenderArticle(sb, article, options);
-                }
+                if (ShouldLabel(p.ReferenceName, false)) Append($"[項:{p.ReferenceName}]");
+                mapping.Add(new("Paragraph", p.Location?.Line ?? 1, GetLineNo(), $"第{article.Number}条第{p.Number}項", p.ReferenceName, null));
+                if (!string.IsNullOrWhiteSpace(p.SentenceText)) Append(p.SentenceText);
+                foreach (var i in p.Items){ var l=ShouldLabel(i.ReferenceName,false)?$"[号:{i.ReferenceName}] ":""; Append($"- {l}{i.SentenceText}");}
+                Append("");
             }
-
-            foreach (var article in chapter.Articles) RenderArticle(sb, article, options);
         }
-
-        foreach (var article in model.DirectArticles) RenderArticle(sb, article, options);
-
-        return sb.ToString().Replace("\r\n", "\n", StringComparison.Ordinal);
-    }
-
-    private static void RenderArticle(StringBuilder sb, ArticleNode article, ExtendedMarkdownRenderOptions options)
-    {
-        var title = string.IsNullOrWhiteSpace(article.Caption) ? $"条 {article.ReferenceName}" : article.Caption;
-        var label = options.ReferenceLabels.Equals("none", StringComparison.OrdinalIgnoreCase) ? "" : $" [条:{article.ReferenceName}]";
-        sb.AppendLine($"### {title}{label}");
-        sb.AppendLine();
-        foreach (var paragraph in article.Paragraphs)
-        {
-            if (!options.ReferenceLabels.Equals("none", StringComparison.OrdinalIgnoreCase))
-            {
-                sb.AppendLine($"[項:{paragraph.ReferenceName}]");
-            }
-
-            if (!string.IsNullOrWhiteSpace(paragraph.SentenceText))
-            {
-                sb.AppendLine(paragraph.SentenceText);
-            }
-
-            foreach (var item in paragraph.Items)
-            {
-                var itemLabel = options.ReferenceLabels.Equals("none", StringComparison.OrdinalIgnoreCase) ? "" : $"[号:{item.ReferenceName}] ";
-                sb.AppendLine($"- {itemLabel}{item.SentenceText}");
-                foreach (var child in item.Children)
-                {
-                    var childLabel = options.ReferenceLabels.Equals("none", StringComparison.OrdinalIgnoreCase) ? "" : $"[号:{child.ReferenceName}] ";
-                    sb.AppendLine($"  - {childLabel}{child.SentenceText}");
-                }
-            }
-
-            sb.AppendLine();
-        }
+        bool ShouldLabel(string? refName, bool isArticle) => options.ReferenceLabels.ToLowerInvariant() switch {"none"=>false,"used"=> isArticle || (!string.IsNullOrWhiteSpace(refName) && (options.UsedRefs?.Contains(refName)??false)), _=>true};
+        int GetLineNo() => sb.ToString().Count(c=>c=="\n"[0])+1;
+        void Append(string s)=>sb.AppendLine(s);
     }
 }

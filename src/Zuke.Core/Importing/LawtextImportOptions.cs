@@ -2,7 +2,7 @@ namespace Zuke.Core.Importing;
 
 public sealed record LawtextImportOptions(
     string From = "lawtext",
-    string ReferenceLabels = "used",
+    string ReferenceLabels = "all",
     string ReferenceMode = "conservative",
     string IdStyle = "ascii",
     string MetadataMode = "frontmatter",

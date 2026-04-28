@@ -48,8 +48,8 @@ public sealed class LawtextImportService
             DirectArticles = model.DirectArticles.Select(ResolveArticle).ToList()
         };
 
-        var renderOptions = new ExtendedMarkdownRenderOptions(options.ReferenceLabels, options.MetadataMode);
-        var markdown = new ExtendedMarkdownRenderer().Render(model, renderOptions);
+        var renderOptions = new ExtendedMarkdownRenderOptions(options.ReferenceLabels, options.MetadataMode, usedRefs);
+        var (markdown, mappingItems) = new ExtendedMarkdownRenderer().Render(model, renderOptions);
 
         if (!options.SkipRoundtripCheck)
         {
@@ -68,6 +68,6 @@ public sealed class LawtextImportService
             }
         }
 
-        return new LawtextImportResult(markdown, allDiags);
+        return new LawtextImportResult(markdown, allDiags, new ImportMapping(inputPath ?? string.Empty, string.Empty, mappingItems));
     }
 }
