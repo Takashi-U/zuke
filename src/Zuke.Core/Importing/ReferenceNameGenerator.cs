@@ -1,3 +1,4 @@
+using Zuke.Core.Numbering;
 using Zuke.Core.Model;
 
 namespace Zuke.Core.Importing;
@@ -28,7 +29,7 @@ public sealed class ReferenceNameGenerator
 
     private static ArticleNode ApplyAsciiArticle(ArticleNode article)
     {
-        var articleRef = $"article-{article.Number}";
+        var articleRef = Numbering.ArticleNumberFormatter.ToReferenceName(article.ArticleNumber);
         var paragraphs = article.Paragraphs.Select(p => p with
         {
             ReferenceName = $"{articleRef}-p{p.Number}",
