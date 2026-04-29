@@ -8,14 +8,16 @@ public class LawtextCliIntegrationTests
     [Fact]
     public void LawtextAndConvertOutputsMatch()
     {
+        var input = Path.Combine(TestHelpers.RepoRoot, "samples", "work-rules.md");
+        Assert.True(File.Exists(input), $"Missing sample file: {input}");
         var out1 = Path.GetTempFileName();
         var out2 = Path.GetTempFileName();
 
-        var run1 = TestHelpers.RunProcess("dotnet", $"run --project src/Zuke.Cli -- lawtext samples/work-rules.md -o {out1}");
-        var run2 = TestHelpers.RunProcess("dotnet", $"run --project src/Zuke.Cli -- convert samples/work-rules.md -o {out2} --to lawtext");
+        var run1 = TestHelpers.RunZuke($"lawtext {TestHelpers.QuoteArg(input)} -o {TestHelpers.QuoteArg(out1)}");
+        var run2 = TestHelpers.RunZuke($"convert {TestHelpers.QuoteArg(input)} -o {TestHelpers.QuoteArg(out2)} --to lawtext");
 
-        Assert.Equal(0, run1.ExitCode);
-        Assert.Equal(0, run2.ExitCode);
+        TestHelpers.AssertExitCode(run1, 0);
+        TestHelpers.AssertExitCode(run2, 0);
 
         var bytes = File.ReadAllBytes(out1);
         Assert.False(bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF);
@@ -38,8 +40,8 @@ public class LawtextCliIntegrationTests
         File.WriteAllText(oldMd, TestHelpers.ReadFixture("references.md"));
         File.WriteAllText(newMd, TestHelpers.ReadFixture("references.md").Replace("届け出なければ", "提出しなければ"));
 
-        var run = TestHelpers.RunProcess("dotnet", $"run --project src/Zuke.Cli -- diff {oldMd} {newMd}");
-        Assert.Equal(1, run.ExitCode);
+        var run = TestHelpers.RunZuke($"diff {TestHelpers.QuoteArg(oldMd)} {TestHelpers.QuoteArg(newMd)}");
+        TestHelpers.AssertExitCode(run, 1);
         Assert.Contains("+", run.StdOut);
     }
 }

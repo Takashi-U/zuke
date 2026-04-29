@@ -5,6 +5,8 @@ namespace Zuke.Core.Importing;
 
 public sealed class LawtextAuditService
 {
+    private static readonly Regex BranchArticleTokenRegex = new(@"^(?<num>第\S+?)(?:\s+|　+|$)", RegexOptions.Compiled);
+
     public LawtextAuditResult Audit(string lawtext, string? path, bool strict)
     {
         var parser = new LawtextParser();
@@ -28,8 +30,12 @@ public sealed class LawtextAuditService
                 Add("LMD099", "Word由来のヘッダー/フッター/ページ番号らしき行です。", i + 1);
             if (line.Contains("第一条", StringComparison.Ordinal) && !line.StartsWith("第一条", StringComparison.Ordinal))
                 Add("LMD099", "本文途中に条番号らしき表現があります。", i + 1);
-            if (line.StartsWith("第", StringComparison.Ordinal) && line.Contains("条の", StringComparison.Ordinal) && !Numbering.ArticleNumberFormatter.TryParseArticleNumber(line.Split("　")[0], out _))
-                Add("LMD101", "枝番号付き条番号の形式が不正です。", i + 1);
+            if (line.StartsWith("第", StringComparison.Ordinal) && line.Contains("条の", StringComparison.Ordinal))
+            {
+                var m = BranchArticleTokenRegex.Match(line);
+                if (!m.Success || !Numbering.ArticleNumberFormatter.TryParseArticleNumber(m.Groups["num"].Value, out _))
+                    Add("LMD101", "枝番号付き条番号の形式が不正です。", i + 1);
+            }
             if (Regex.IsMatch(line, @"^（.+）$") && (i + 1 >= lines.Length || !Regex.IsMatch(lines[i + 1].Trim(), @"^第.+条")))
                 Add("LMD099", "ArticleCaptionらしき行の直後に条文がありません。", i + 1);
         }
