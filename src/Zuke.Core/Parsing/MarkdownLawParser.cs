@@ -94,7 +94,7 @@ public sealed class MarkdownLawParser
                     i++;
                 }
 
-                var paragraphs = ParseParagraphs(blockLines, filePath, diagnostics);
+                var paragraphs = ParseParagraphs(blockLines, filePath, diagnostics, meta.ParagraphNumberStyle);
                 if (paragraphs.Count == 0)
                 {
                     paragraphs.Add(new ParagraphNode(1, null, null, string.Empty, new(filePath, articleStart, 1), []));
@@ -217,7 +217,7 @@ public sealed class MarkdownLawParser
         return (caption, name);
     }
 
-    private static List<ParagraphNode> ParseParagraphs(List<(string line, int sourceLine)> blockLines, string? filePath, List<DiagnosticMessage> diagnostics)
+    private static List<ParagraphNode> ParseParagraphs(List<(string line, int sourceLine)> blockLines, string? filePath, List<DiagnosticMessage> diagnostics, string paragraphNumberStyle)
     {
         var paragraphs = new List<ParagraphNode>();
         string? pendingParagraphRef = null;
@@ -289,7 +289,13 @@ public sealed class MarkdownLawParser
             }
 
             var sentence = string.Join("\n", currentSentence);
-            paragraphs.Add(new ParagraphNode(paragraphs.Count + 1, pendingParagraphRef, null, sentence, new(filePath, paraStartLine, 1), [.. currentItems]));
+            var paraNumber = paragraphs.Count + 1;
+            var paraNumText = paraNumber == 1
+                ? null
+                : paragraphNumberStyle.Equals("ascii", StringComparison.OrdinalIgnoreCase)
+                    ? paraNumber.ToString()
+                    : ToFullWidth(paraNumber);
+            paragraphs.Add(new ParagraphNode(paraNumber, pendingParagraphRef, paraNumText, sentence, new(filePath, paraStartLine, 1), [.. currentItems]));
             currentSentence.Clear();
             currentItems.Clear();
             pendingParagraphRef = null;
@@ -380,4 +386,16 @@ public sealed class MarkdownLawParser
 
         return false;
     }
+
+    private static string ToFullWidth(int n) => n.ToString()
+        .Replace("0", "０", StringComparison.Ordinal)
+        .Replace("1", "１", StringComparison.Ordinal)
+        .Replace("2", "２", StringComparison.Ordinal)
+        .Replace("3", "３", StringComparison.Ordinal)
+        .Replace("4", "４", StringComparison.Ordinal)
+        .Replace("5", "５", StringComparison.Ordinal)
+        .Replace("6", "６", StringComparison.Ordinal)
+        .Replace("7", "７", StringComparison.Ordinal)
+        .Replace("8", "８", StringComparison.Ordinal)
+        .Replace("9", "９", StringComparison.Ordinal);
 }

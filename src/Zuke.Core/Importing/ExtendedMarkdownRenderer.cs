@@ -24,6 +24,7 @@ public sealed class ExtendedMarkdownRenderer
             Append($"lawType: {model.Metadata.LawType}");
             Append($"lang: {model.Metadata.Lang}");
             Append($"numberStyle: {model.Metadata.NumberStyle}");
+            Append($"paragraphNumberStyle: {model.Metadata.ParagraphNumberStyle}");
             Append("---");
             Append("");
         }

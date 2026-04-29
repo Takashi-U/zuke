@@ -6,6 +6,7 @@ public sealed class LawtextReferenceDetector
 {
     private static readonly Regex[] ProtectedCompositeRegexes =
     [
+        new Regex(@"(?:本条|同条|前条|次条)第[0-9０-９一二三四五六七八九十百千]+項(?:第[0-9０-９一二三四五六七八九十百千]+号)?(?:及び第[0-9０-９一二三四五六七八九十百千]+号)?(?:又は第[0-9０-９一二三四五六七八九十百千]+項)?(?:から第[0-9０-９一二三四五六七八九十百千]+項)?", RegexOptions.Compiled),
         new Regex(@"(?:本条|同条|前条|次条)第[0-9０-９一二三四五六七八九十百千]+項、第[0-9０-９一二三四五六七八九十百千]+項から第[0-9０-９一二三四五六七八九十百千]+項", RegexOptions.Compiled),
         new Regex(@"(?:本条|同条|前条|次条)第[0-9０-９一二三四五六七八九十百千]+項、第[0-9０-９一二三四五六七八九十百千]+項又は第[0-9０-９一二三四五六七八九十百千]+項", RegexOptions.Compiled),
         new Regex(@"第[0-9０-９一二三四五六七八九十百千]+項から第[0-9０-９一二三四五六七八九十百千]+項", RegexOptions.Compiled),

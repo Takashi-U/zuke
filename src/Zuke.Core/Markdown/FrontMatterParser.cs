@@ -45,6 +45,7 @@ public static class FrontMatterParser
                 map.TryGetValue("lang", out var g) ? g.ToString() ?? "" : "")
             {
                 NumberStyle = map.TryGetValue("numberStyle", out var h) ? h?.ToString() ?? "kanji" : "kanji"
+                ,ParagraphNumberStyle = map.TryGetValue("paragraphNumberStyle", out var pns) ? pns?.ToString() ?? "fullwidth" : "fullwidth"
             };
 
             return new FrontMatterParseResult(metadata, bodyNormalized, true, missing);
@@ -71,7 +72,8 @@ public static class FrontMatterParser
 
         return new LawMetadata(title, lawNum, era, year, num, lawType, lang)
         {
-            NumberStyle = TryExtractScalar(yaml, "numberStyle") ?? fallback.NumberStyle
+            NumberStyle = TryExtractScalar(yaml, "numberStyle") ?? fallback.NumberStyle,
+            ParagraphNumberStyle = TryExtractScalar(yaml, "paragraphNumberStyle") ?? fallback.ParagraphNumberStyle
         };
     }
 

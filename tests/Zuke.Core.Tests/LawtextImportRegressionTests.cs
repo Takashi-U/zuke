@@ -8,6 +8,43 @@ namespace Zuke.Core.Tests;
 public class LawtextImportRegressionTests
 {
     [Fact]
+    public void RoundTrip_FixesKnownResidualBugs()
+    {
+        const string source = """
+就業規則
+
+第1条　次の各号のいずれかに該当する者は対象外とする。
+一　入社1年未満の従業員
+二　申出の日から1年以内に雇用関係が終了することが明らかな従業員
+三　1週間の所定労働日数が2日以下の従業員
+
+第2条　本条第1項にかかわらず、本条第1項第1号に定める。
+2　会社は、本条第6項又は第7項を準用する。
+3　従業員は、本条第3項第1号による。
+
+      附則
+本規程は、公布の日から施行する。
+""";
+
+        var imported = new LawtextImportService().Import(source, "residual.law.txt", new());
+        Assert.Contains("paragraphNumberStyle: ascii", imported.Markdown);
+        var compiled = new LawMarkdownCompiler().Compile(imported.Markdown, "imported.md", new CompileOptions(false, true));
+        Assert.False(compiled.HasErrors);
+        var rendered = new LawtextRenderer().Render(compiled.Document!);
+
+        Assert.Contains("一　入社1年未満の従業員", rendered);
+        Assert.DoesNotContain("一　一　入社1年未満の従業員", rendered);
+        Assert.Contains("本条第1項", rendered);
+        Assert.Contains("本条第1項第1号", rendered);
+        Assert.Contains("本条第6項又は第7項", rendered);
+        Assert.DoesNotContain("本条第5条第1項", rendered);
+        Assert.Contains("会社は、本条第6項又は第7項を準用する。", rendered);
+        Assert.Contains("従業員は、本条第3項第1号による。", rendered);
+        Assert.DoesNotContain("\n２　会社は", rendered);
+        Assert.Contains("\n      附則\n", rendered);
+    }
+
+    [Fact]
     public void RoundTrip_PreservesArabicReferencesBulletsAndSupplementaryProvision()
     {
         const string source = """
