@@ -14,7 +14,7 @@ public static class FrontMatterParser
 
     public static FrontMatterParseResult ParseDetailed(string markdown)
     {
-        var normalized = markdown.Replace("\r\n", "\n", StringComparison.Ordinal);
+        var normalized = markdown.Replace("\r\n", "\n", StringComparison.Ordinal).TrimStart('\uFEFF');
         if (!normalized.StartsWith("---\n", StringComparison.Ordinal))
         {
             return new FrontMatterParseResult(DefaultMetadata(), markdown, false, []);
@@ -48,8 +48,53 @@ public static class FrontMatterParser
         }
         catch
         {
-            return new FrontMatterParseResult(DefaultMetadata(), bodyNormalized, true, [.. RequiredKeys]);
+            var metadata = ParseBestEffortMetadata(yaml);
+            var missing = RequiredKeys.Where(k =>
+                k == "lawTitle" && string.IsNullOrWhiteSpace(metadata.LawTitle)).ToList();
+            return new FrontMatterParseResult(metadata, bodyNormalized, true, missing);
         }
+    }
+
+    private static LawMetadata ParseBestEffortMetadata(string yaml)
+    {
+        var fallback = DefaultMetadata();
+        var title = TryExtractScalar(yaml, "lawTitle") ?? fallback.LawTitle;
+        var lawNum = TryExtractScalar(yaml, "lawNum") ?? fallback.LawNum;
+        var era = TryExtractScalar(yaml, "era") ?? fallback.Era;
+        var lawType = TryExtractScalar(yaml, "lawType") ?? fallback.LawType;
+        var lang = TryExtractScalar(yaml, "lang") ?? fallback.Lang;
+        var year = int.TryParse(TryExtractScalar(yaml, "year"), out var parsedYear) ? parsedYear : fallback.Year;
+        var num = int.TryParse(TryExtractScalar(yaml, "num"), out var parsedNum) ? parsedNum : fallback.Num;
+
+        return new LawMetadata(title, lawNum, era, year, num, lawType, lang);
+    }
+
+    private static string? TryExtractScalar(string yaml, string key)
+    {
+        foreach (var rawLine in yaml.Split('\n'))
+        {
+            var line = rawLine.Trim();
+            if (line.Length == 0 || line.StartsWith('#')) continue;
+
+            var separatorIndex = line.IndexOf(':');
+            if (separatorIndex <= 0) continue;
+
+            var left = line[..separatorIndex].Trim();
+            if (!left.Equals(key, StringComparison.Ordinal)) continue;
+
+            var right = line[(separatorIndex + 1)..].Trim();
+            if (right.Length >= 2)
+            {
+                if ((right[0] == '"' && right[^1] == '"') || (right[0] == '\'' && right[^1] == '\''))
+                {
+                    right = right[1..^1];
+                }
+            }
+
+            return right;
+        }
+
+        return null;
     }
 
     public static IReadOnlyList<DiagnosticMessage> ValidateRequired(FrontMatterParseResult result, string? filePath)
