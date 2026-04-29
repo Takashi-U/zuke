@@ -14,7 +14,10 @@ public sealed class LawMarkdownCompiler
         var fm = FrontMatterParser.ParseDetailed(markdown);
         var model = new MarkdownLawParser().Parse(markdown, filePath);
         var diags = new List<DiagnosticMessage>(model.Diagnostics);
-        diags.AddRange(FrontMatterParser.ValidateRequired(fm, filePath));
+        if (options.RequireFrontMatter)
+        {
+            diags.AddRange(FrontMatterParser.ValidateRequired(fm, filePath));
+        }
         diags.AddRange(new LawStructureValidator().Validate(model));
         foreach (var article in EnumerateArticles(model))
         {
