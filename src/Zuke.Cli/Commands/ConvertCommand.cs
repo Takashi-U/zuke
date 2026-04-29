@@ -2,6 +2,7 @@ using Spectre.Console;
 using Spectre.Console.Cli;
 using Zuke.Cli.Console;
 using Zuke.Core.Compilation;
+using Zuke.Core.Markdown;
 using Zuke.Core.Rendering;
 using Zuke.Core.Validation;
 
@@ -23,6 +24,7 @@ public sealed class ConvertCommand : Command<ConvertCommand.Settings>
         [CommandOption("--emoji <MODE>")] public string Emoji { get; set; } = "auto";
         [CommandOption("--no-color")] public bool NoColor { get; set; }
         [CommandOption("--plain")] public bool Plain { get; set; }
+        [CommandOption("--metadata-profile <PROFILE>")] public string MetadataProfile { get; set; } = "default";
     }
 
     public override int Execute(CommandContext context, Settings settings)
@@ -46,7 +48,11 @@ public sealed class ConvertCommand : Command<ConvertCommand.Settings>
             var renderDiags = LawtextRenderer.ValidateRenderedText(lawtext);
             reporter.ReportDiagnostics(renderDiags);
             if (renderDiags.Any(x => x.Severity == Zuke.Core.Model.DiagnosticSeverity.Error)) return 1;
-            var docBoth = new LawXmlRenderer().Render(result.Document.Document, LawXmlRenderOptions.Default with { ArabicNumbers = settings.NumberStyle == "arabic" });
+            var xmlModelBoth = ApplyMetadataProfile(result.Document.Document, settings.MetadataProfile);
+            var xmlMetaDiagsBoth = FrontMatterParser.ValidateForXml(xmlModelBoth.Metadata, settings.Input);
+            reporter.ReportDiagnostics(xmlMetaDiagsBoth);
+            if (xmlMetaDiagsBoth.Any(x => x.Severity == Zuke.Core.Model.DiagnosticSeverity.Error)) return 1;
+            var docBoth = new LawXmlRenderer().Render(xmlModelBoth, LawXmlRenderOptions.Default with { ArabicNumbers = settings.NumberStyle == "arabic" });
             if (!settings.SkipValidation)
             {
                 var xsd = settings.Xsd ?? ZukeXsdProvider.ResolveDefaultPath();
@@ -72,7 +78,11 @@ public sealed class ConvertCommand : Command<ConvertCommand.Settings>
             return 0;
         }
 
-        var doc = new LawXmlRenderer().Render(result.Document.Document, LawXmlRenderOptions.Default with { ArabicNumbers = settings.NumberStyle == "arabic" });
+        var xmlModel = ApplyMetadataProfile(result.Document.Document, settings.MetadataProfile);
+        var xmlMetaDiags = FrontMatterParser.ValidateForXml(xmlModel.Metadata, settings.Input);
+        reporter.ReportDiagnostics(xmlMetaDiags);
+        if (xmlMetaDiags.Any(x => x.Severity == Zuke.Core.Model.DiagnosticSeverity.Error)) return 1;
+        var doc = new LawXmlRenderer().Render(xmlModel, LawXmlRenderOptions.Default with { ArabicNumbers = settings.NumberStyle == "arabic" });
         if (!settings.SkipValidation)
         {
             var xsd = settings.Xsd ?? ZukeXsdProvider.ResolveDefaultPath();
@@ -83,5 +93,21 @@ public sealed class ConvertCommand : Command<ConvertCommand.Settings>
         doc.Save(settings.Output);
         reporter.Info($"法令XMLを出力しました: {settings.Output}");
         return 0;
+    }
+
+    private static Zuke.Core.Model.LawDocumentModel ApplyMetadataProfile(Zuke.Core.Model.LawDocumentModel model, string profile)
+    {
+        if (!string.Equals(profile, "internal-rule", StringComparison.OrdinalIgnoreCase)) return model;
+        var m = model.Metadata;
+        var normalized = m with
+        {
+            LawNum = string.IsNullOrWhiteSpace(m.LawNum) ? "社内規程" : m.LawNum,
+            Era = string.IsNullOrWhiteSpace(m.Era) ? "Reiwa" : m.Era,
+            Year = m.Year <= 0 ? 1 : m.Year,
+            Num = m.Num <= 0 ? 1 : m.Num,
+            LawType = string.IsNullOrWhiteSpace(m.LawType) ? "Misc" : m.LawType,
+            Lang = string.IsNullOrWhiteSpace(m.Lang) ? "ja" : m.Lang
+        };
+        return model with { Metadata = normalized };
     }
 }

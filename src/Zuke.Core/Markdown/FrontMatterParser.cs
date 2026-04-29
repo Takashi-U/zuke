@@ -39,8 +39,8 @@ public static class FrontMatterParser
                 map.TryGetValue("lawTitle", out var a) ? a.ToString() ?? "" : "",
                 map.TryGetValue("lawNum", out var b) ? b.ToString() ?? "" : "",
                 map.TryGetValue("era", out var c) ? c.ToString() ?? "" : "",
-                map.TryGetValue("year", out var d) ? Convert.ToInt32(d) : 0,
-                map.TryGetValue("num", out var e) ? Convert.ToInt32(e) : 0,
+                map.TryGetValue("year", out var d) ? Convert.ToInt32(d) : 1,
+                map.TryGetValue("num", out var e) ? Convert.ToInt32(e) : 1,
                 map.TryGetValue("lawType", out var f) ? f.ToString() ?? "" : "",
                 map.TryGetValue("lang", out var g) ? g.ToString() ?? "" : "");
 
@@ -68,7 +68,21 @@ public static class FrontMatterParser
         return [new(DiagnosticSeverity.Error, "LMD045", msg, new SourceLocation(filePath, 1, 1), [])];
     }
 
-    private static readonly string[] RequiredKeys = ["lawTitle", "lawNum", "era", "year", "num", "lawType", "lang"];
+    private static readonly string[] RequiredKeys = ["lawTitle"];
+
+    public static IReadOnlyList<DiagnosticMessage> ValidateForXml(LawMetadata metadata, string? filePath)
+    {
+        var missing = new List<string>();
+        if (string.IsNullOrWhiteSpace(metadata.LawTitle)) missing.Add("lawTitle");
+        if (string.IsNullOrWhiteSpace(metadata.LawNum)) missing.Add("lawNum");
+        if (string.IsNullOrWhiteSpace(metadata.Era)) missing.Add("era");
+        if (metadata.Year <= 0) missing.Add("year");
+        if (metadata.Num <= 0) missing.Add("num");
+        if (string.IsNullOrWhiteSpace(metadata.LawType)) missing.Add("lawType");
+        if (string.IsNullOrWhiteSpace(metadata.Lang)) missing.Add("lang");
+        if (missing.Count == 0) return [];
+        return [new(DiagnosticSeverity.Error, "LMD045", $"必須メタデータが不足しています: {string.Join(", ", missing)}", new SourceLocation(filePath, 1, 1), [])];
+    }
 
     private static LawMetadata DefaultMetadata() => new("無題", "", "Reiwa", 1, 1, "Misc", "ja");
 }
