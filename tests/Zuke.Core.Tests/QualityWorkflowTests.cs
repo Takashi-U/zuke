@@ -13,7 +13,7 @@ public class LawtextAuditTests
     [InlineData("第一条　第三条第一項による。", "LMD092")]
     [InlineData("第一条　第一号から第三号まで。", "LMD095")]
     [InlineData("第一条　第一条及び第二条による。", "LMD094")]
-    [InlineData("第二条の二　追加条文。", "LMD092")]
+    [InlineData("第9条のA　追加条文。", "LMD101")]
     public void ImportDiagnosticsForKnownPatterns(string body, string expectedCode)
     {
         var lawtext = $"題名\n（令和六年規則第一号）\n\n{body}\n";

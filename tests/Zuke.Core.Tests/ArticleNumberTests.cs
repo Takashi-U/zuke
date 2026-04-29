@@ -17,6 +17,8 @@ public class ArticleNumberTests
         var ok = ArticleNumberFormatter.TryParseArticleNumber(text, out var n);
         Assert.True(ok);
         Assert.Equal(expectedBase, n.BaseNumber);
+        if (text.Contains("38")) Assert.Equal(new[] { 3, 2 }, n.BranchNumbers);
+        if (text.Contains("19条の2") || text.Contains("十九条の二")) Assert.Equal(new[] { 2 }, n.BranchNumbers);
     }
 
 

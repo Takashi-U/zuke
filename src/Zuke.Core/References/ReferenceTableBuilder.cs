@@ -1,4 +1,3 @@
-using System.Text;
 using Zuke.Core.Model;
 
 namespace Zuke.Core.References;
@@ -10,22 +9,24 @@ public sealed class ReferenceTableBuilder
         var table = new Dictionary<string, ReferenceDefinition>(StringComparer.OrdinalIgnoreCase);
         var diags = new List<DiagnosticMessage>();
 
+        var articleIndex = 0;
         foreach (var article in EnumerateArticles(model))
         {
-            AddRef(article.ReferenceName, LawElementKind.Article, article.Location, article.Number, null, null);
+            articleIndex++;
+            AddRef(article.ReferenceName, LawElementKind.Article, article.Location, article.Number, article.ArticleNumber, null, null, articleIndex);
             foreach (var paragraph in article.Paragraphs)
             {
-                AddRef(paragraph.ReferenceName, LawElementKind.Paragraph, paragraph.Location, article.Number, paragraph.Number, null);
+                AddRef(paragraph.ReferenceName, LawElementKind.Paragraph, paragraph.Location, article.Number, article.ArticleNumber, paragraph.Number, null, articleIndex);
                 foreach (var item in paragraph.Items)
                 {
-                    AddRef(item.ReferenceName, LawElementKind.Item, item.Location, article.Number, paragraph.Number, item.Number);
+                    AddRef(item.ReferenceName, LawElementKind.Item, item.Location, article.Number, article.ArticleNumber, paragraph.Number, item.Number, articleIndex);
                 }
             }
         }
 
         return (table, diags);
 
-        void AddRef(string? rawName, LawElementKind kind, SourceLocation? location, int articleNumber, int? paragraphNumber, int? itemNumber)
+        void AddRef(string? rawName, LawElementKind kind, SourceLocation? location, int articleNumber, Numbering.ArticleNumber articleNumberValue, int? paragraphNumber, int? itemNumber, int documentArticleIndex)
         {
             if (string.IsNullOrWhiteSpace(rawName)) return;
             var loc = location ?? new SourceLocation(null, 1, 1);
@@ -41,7 +42,7 @@ public sealed class ReferenceTableBuilder
                 return;
             }
 
-            table[normalized] = new(rawName, normalized, kind, loc, articleNumber, paragraphNumber, itemNumber);
+            table[normalized] = new(rawName, normalized, kind, loc, articleNumber, articleNumberValue, paragraphNumber, itemNumber, documentArticleIndex);
         }
     }
 

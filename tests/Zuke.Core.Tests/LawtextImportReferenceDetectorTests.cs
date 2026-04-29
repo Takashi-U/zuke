@@ -14,6 +14,12 @@ public class LawtextImportReferenceDetectorTests
     [InlineData("前条")]
     [InlineData("前項")]
     [InlineData("前号")]
+    [InlineData("第9条の2")]
+    [InlineData("第九条の二")]
+    [InlineData("第9条の2第1項")]
+    [InlineData("第九条の二第一項")]
+    [InlineData("第9条の2第1項第1号")]
+    [InlineData("第三十八条の三の二第二項第一号")]
     [InlineData("第二項")]
     [InlineData("第二号")]
     public void DetectsReferenceToken(string token)
