@@ -43,10 +43,11 @@ public static class TestHelpers
             WorkingDirectory = workdir ?? RepoRoot
         };
         using var process = Process.Start(psi) ?? throw new InvalidOperationException($"failed to start {fileName}");
-        var stdout = process.StandardOutput.ReadToEnd();
-        var stderr = process.StandardError.ReadToEnd();
+        var stdoutTask = process.StandardOutput.ReadToEndAsync();
+        var stderrTask = process.StandardError.ReadToEndAsync();
         process.WaitForExit();
-        return (process.ExitCode, stdout, stderr);
+        Task.WaitAll(stdoutTask, stderrTask);
+        return (process.ExitCode, stdoutTask.Result, stderrTask.Result);
     }
 
     public static (int ExitCode, string StdOut, string StdErr) RunZuke(string zukeArgs)
