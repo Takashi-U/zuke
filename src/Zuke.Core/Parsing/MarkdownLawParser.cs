@@ -21,6 +21,7 @@ public sealed class MarkdownLawParser
         var chapters = new List<ChapterNode>();
         var direct = new List<ArticleNode>();
         var diagnostics = new List<DiagnosticMessage>();
+        var supplementary = new List<SupplementaryProvisionNode>();
 
         var lines = body.Replace("\r\n", "\n", StringComparison.Ordinal).Split('\n');
 
@@ -59,10 +60,27 @@ public sealed class MarkdownLawParser
                 FlushSection();
             }
 
+            if (TryParseSupplementaryProvisionHeading(line, out var supplementaryTitle))
+            {
+                FlushSection();
+                FlushChapter();
+                var supplementaryStart = i + 1;
+                i++;
+                var supplementaryLines = new List<string>();
+                while (i < lines.Length)
+                {
+                    var t = lines[i].Trim();
+                    if (t.StartsWith("#", StringComparison.Ordinal)) break;
+                    if (!string.IsNullOrWhiteSpace(lines[i])) supplementaryLines.Add(lines[i].TrimEnd());
+                    i++;
+                }
+                supplementary.Add(new SupplementaryProvisionNode(supplementaryTitle, new(filePath, supplementaryStart, 1), supplementaryLines));
+                continue;
+            }
+
             if (TryParseArticleHeading(line, currentSection is not null, out var headingText))
             {
                 articleNo++;
-                var headingStartsWithSupplement = headingText.TrimStart().StartsWith("附則", StringComparison.Ordinal);
                 var (caption, articleRefName) = ParseHeading(headingText, "条");
                 var articleStart = i + 1;
                 i++;
@@ -88,11 +106,8 @@ public sealed class MarkdownLawParser
                 {
                     articleNumber = parsedNumber;
                 }
-                var isSupplementaryProvision = headingStartsWithSupplement || string.Equals(caption, "附則", StringComparison.Ordinal);
-                var articleTitleText = isSupplementaryProvision
-                    ? "附則"
-                    : ArticleNumberFormatter.ToArticleTitle(articleNumber, false);
-                var article = new ArticleNode(articleNo, articleRefName, isSupplementaryProvision ? string.Empty : caption, articleTitleText, new(filePath, articleStart, 1), paragraphs) { ArticleNumber = articleNumber };
+                var articleTitleText = ArticleNumberFormatter.ToArticleTitle(articleNumber, false);
+                var article = new ArticleNode(articleNo, articleRefName, caption, articleTitleText, new(filePath, articleStart, 1), paragraphs) { ArticleNumber = articleNumber };
                 if (currentSection is not null) secArticles.Add(article);
                 else if (currentChapter is not null) chArticles.Add(article);
                 else direct.Add(article);
@@ -110,7 +125,7 @@ public sealed class MarkdownLawParser
 
         FlushSection();
         FlushChapter();
-        return new LawDocumentModel(meta, chapters, direct, diagnostics);
+        return new LawDocumentModel(meta, chapters, direct, supplementary, diagnostics);
 
         void FlushSection()
         {
@@ -151,6 +166,16 @@ public sealed class MarkdownLawParser
         var m = NumberedSectionRegex.Match(text);
         if (m.Success) { title = m.Groups["title"].Value.Trim(); return true; }
         return false;
+    }
+
+    private static bool TryParseSupplementaryProvisionHeading(string line, out string title)
+    {
+        title = string.Empty;
+        if (!line.StartsWith("## ", StringComparison.Ordinal)) return false;
+        var text = line[3..].Trim();
+        if (!text.StartsWith("附則", StringComparison.Ordinal)) return false;
+        title = "附則";
+        return true;
     }
 
     private static bool TryParseArticleHeading(string line, bool insideSection, out string headingText)

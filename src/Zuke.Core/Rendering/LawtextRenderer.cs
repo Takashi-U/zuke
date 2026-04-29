@@ -84,6 +84,26 @@ public sealed class LawtextRenderer
             hasAnyTopLevelBlock = true;
         }
 
+        foreach (var supplementaryProvision in model.SupplementaryProvisions)
+        {
+            if (options.IncludeBlankLineBetweenBlocks && hasAnyTopLevelBlock)
+            {
+                writer.WriteBlankLine();
+            }
+
+            writer.WriteLine(LawtextLineKind.ArticleParagraph, supplementaryProvision.Title);
+            if (options.IncludeBlankLineBetweenBlocks)
+            {
+                writer.WriteBlankLine();
+            }
+
+            foreach (var line in supplementaryProvision.Lines)
+            {
+                writer.WriteLine(LawtextLineKind.Paragraph, line);
+            }
+            hasAnyTopLevelBlock = true;
+        }
+
         var text = writer.ToString(options);
         text = new LawtextNormalizer().Normalize(text, new LawtextNormalizeOptions
         {
