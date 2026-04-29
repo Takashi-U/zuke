@@ -10,7 +10,7 @@ public sealed class LawtextParser
     private static readonly Regex ChapterRegex = new(@"^\s*第(?<n>[0-9０-９一二三四五六七八九十百千]+)章\s+[　 ]*(?<t>.+)$", RegexOptions.Compiled);
     private static readonly Regex SectionRegex = new(@"^\s*第(?<n>[0-9０-９一二三四五六七八九十百千]+)節\s+[　 ]*(?<t>.+)$", RegexOptions.Compiled);
     private static readonly Regex CaptionRegex = new(@"^\s*（(?<t>.+)）\s*$", RegexOptions.Compiled);
-    private static readonly Regex ArticleRegex = new(@"^第(?<n>[0-9０-９一二三四五六七八九十百千]+)条\s*[　 ]*(?<s>.*)$", RegexOptions.Compiled);
+    private static readonly Regex ArticleRegex = new(@"^(?<num>第[0-9０-９一二三四五六七八九十百千]+条(の[0-9０-９一二三四五六七八九十百千]+)*)\s*[　 ]*(?<s>.*)$", RegexOptions.Compiled);
     private static readonly Regex ParagraphRegex = new(@"^(?<n>[0-9０-９]+)\s*[　 ]*(?<s>.*)$", RegexOptions.Compiled);
     private static readonly Regex ItemRegex = new(@"^\s*(?<n>[一二三四五六七八九十]+)\s*[　 ](?<s>.+)$", RegexOptions.Compiled);
     private static readonly Regex Subitem1Regex = new(@"^\s*(?<n>[イロハニホヘトチリヌルヲワカヨタレソツネナラムウヰノオクヤマケフコエテ])\s*[　 ](?<s>.+)$", RegexOptions.Compiled);
@@ -88,8 +88,14 @@ public sealed class LawtextParser
             if (article.Success)
             {
                 FlushArticle();
-                var n = ParseNumber(article.Groups["n"].Value);
-                currentArticle = new(n, null, pendingCaption ?? "", JapaneseNumberFormatter.ToArticle(n, false), new(filePath, i + 1, 1), []);
+                var articleText = article.Groups["num"].Value;
+                if (!ArticleNumberFormatter.TryParseArticleNumber(articleText, out var articleNumber))
+                {
+                    diags.Add(new(DiagnosticSeverity.Warning, "LMD101", "Article枝番号の形式が不正です。", new(filePath, i + 1, 1), []));
+                    continue;
+                }
+                var n = articleNumber.BaseNumber;
+                currentArticle = new(n, null, pendingCaption ?? "", ArticleNumberFormatter.ToArticleTitle(articleNumber, false), new(filePath, i + 1, 1), []) { ArticleNumber = articleNumber };
                 pendingCaption = null;
                 currentParagraph = new(1, null, null, article.Groups["s"].Value.Trim(), new(filePath, i + 1, 1), []);
                 items = [];
@@ -212,7 +218,7 @@ public sealed class LawtextParser
         return true;
     }
 
-    internal static int ParseNumber(string text)
+    public static int ParseNumber(string text)
     {
         var normalized = text.Trim()
             .Replace("０", "0", StringComparison.Ordinal).Replace("１", "1", StringComparison.Ordinal)

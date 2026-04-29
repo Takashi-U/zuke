@@ -205,3 +205,7 @@ zuke audit input.law.txt
 ```bash
 zuke convert input.md --to both --xml-output output.xml --lawtext-output output.law.txt
 ```
+
+## 枝番号付きArticle
+
+zukeは第19条の2・第十九条の二・第38条の3の2のような枝番号付きArticleを、独立したArticleとして扱います。第19条の2は第19条の下位要素ではなく、同じ階層に並ぶ独立した条であり、既存条番号を変えずに途中へ条を差し込むための番号です。XMLでは `Article Num="19_2"` 形式で出力し、import時は `[条:article-19-2]` の参照名を生成します。

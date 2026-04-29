@@ -40,8 +40,8 @@ public sealed class LawXmlRenderer
     {
         var elements = new List<object>
         {
-            new XAttribute("Num", a.Number),
-            new XElement("ArticleTitle", JapaneseNumberFormatter.ToArticle(a.Number, options.ArabicNumbers))
+            new XAttribute("Num", ArticleNumberFormatter.ToXmlNum(a.ArticleNumber)),
+            new XElement("ArticleTitle", ArticleNumberFormatter.ToArticleTitle(a.ArticleNumber, options.ArabicNumbers))
         };
 
         if (!string.IsNullOrWhiteSpace(a.Caption))

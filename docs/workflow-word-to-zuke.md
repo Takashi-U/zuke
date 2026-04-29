@@ -25,3 +25,5 @@ zuke diff before.md imported.md --view unified
 - 表・別表・附則・様式はMVPでは手動確認が必要
 - AI変換結果は必ず人間が確認する
 - Wordは最終出力形式とし、編集元はMarkdownに寄せることを推奨する
+
+> 実務文書では「第9条の2」のような枝番号付きArticleが使われます。zukeではこれを第9条の下位要素ではなく、第9条と同じ階層に並ぶ独立したArticleとして取り扱います。
