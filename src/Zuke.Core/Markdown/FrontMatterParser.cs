@@ -42,7 +42,10 @@ public static class FrontMatterParser
                 map.TryGetValue("year", out var d) ? Convert.ToInt32(d) : 1,
                 map.TryGetValue("num", out var e) ? Convert.ToInt32(e) : 1,
                 map.TryGetValue("lawType", out var f) ? f.ToString() ?? "" : "",
-                map.TryGetValue("lang", out var g) ? g.ToString() ?? "" : "");
+                map.TryGetValue("lang", out var g) ? g.ToString() ?? "" : "")
+            {
+                NumberStyle = map.TryGetValue("numberStyle", out var h) ? h?.ToString() ?? "kanji" : "kanji"
+            };
 
             return new FrontMatterParseResult(metadata, bodyNormalized, true, missing);
         }
@@ -66,7 +69,10 @@ public static class FrontMatterParser
         var year = int.TryParse(TryExtractScalar(yaml, "year"), out var parsedYear) ? parsedYear : fallback.Year;
         var num = int.TryParse(TryExtractScalar(yaml, "num"), out var parsedNum) ? parsedNum : fallback.Num;
 
-        return new LawMetadata(title, lawNum, era, year, num, lawType, lang);
+        return new LawMetadata(title, lawNum, era, year, num, lawType, lang)
+        {
+            NumberStyle = TryExtractScalar(yaml, "numberStyle") ?? fallback.NumberStyle
+        };
     }
 
     private static string? TryExtractScalar(string yaml, string key)
