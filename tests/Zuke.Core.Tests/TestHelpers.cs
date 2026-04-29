@@ -10,6 +10,8 @@ public static class TestHelpers
 {
     public static string RepoRoot { get; } = ResolveRepoRoot();
     public static string CliProjectPath { get; } = Path.Combine(RepoRoot, "src", "Zuke.Cli", "Zuke.Cli.csproj");
+    private static bool _cliBuilt;
+    private static readonly object CliBuildLock = new();
 
     public static CompileResult Compile(string? markdown = null, bool strict = false, bool arabicNumbers = false)
     {
@@ -51,7 +53,10 @@ public static class TestHelpers
     }
 
     public static (int ExitCode, string StdOut, string StdErr) RunZuke(string zukeArgs)
-        => RunProcess("dotnet", $"run --project {QuoteArg(CliProjectPath)} -- {zukeArgs}", RepoRoot);
+    {
+        EnsureCliBuilt();
+        return RunProcess("dotnet", $"run --no-build -c Release --project {QuoteArg(CliProjectPath)} -- {zukeArgs}", RepoRoot);
+    }
 
     public static void AssertExitCode((int ExitCode, string StdOut, string StdErr) result, int expected)
     {
@@ -83,5 +88,17 @@ public static class TestHelpers
         }
 
         throw new InvalidOperationException("repo root not found");
+    }
+
+    private static void EnsureCliBuilt()
+    {
+        if (_cliBuilt) return;
+        lock (CliBuildLock)
+        {
+            if (_cliBuilt) return;
+            var build = RunProcess("dotnet", $"build {QuoteArg(CliProjectPath)} -c Release", RepoRoot);
+            AssertExitCode(build, 0);
+            _cliBuilt = true;
+        }
     }
 }
