@@ -32,6 +32,21 @@ public class LawtextAuditTests
         var result = new LawtextAuditService().Audit(lawtext, "x.law.txt", false);
         Assert.Contains(result.Diagnostics, d => d.Code == code || d.Code == "LMD099");
     }
+
+    [Theory]
+    [InlineData("第9条の2　本文。", false)]
+    [InlineData("第9条の2 本文。", false)]
+    [InlineData("第九条の二 本文。", false)]
+    [InlineData("第38条の3の2 本文。", false)]
+    [InlineData("第9条のA 本文。", true)]
+    [InlineData("第9条の0 本文。", true)]
+    [InlineData("第9条の二の 本文。", true)]
+    public void Audit_BranchArticleValidation_Works(string articleLine, bool expectLmd101)
+    {
+        var lawtext = $"題名\n（令和六年規則第一号）\n\n{articleLine}\n";
+        var result = new LawtextAuditService().Audit(lawtext, "x.law.txt", false);
+        Assert.Equal(expectLmd101, result.Diagnostics.Any(d => d.Code == "LMD101"));
+    }
 }
 
 public class ImportReportTests
@@ -41,8 +56,9 @@ public class ImportReportTests
     {
         var md = Path.GetTempFileName();
         var report = Path.GetTempFileName();
-        var run = TestHelpers.RunProcess("dotnet", $"run --project src/Zuke.Cli -- import samples/import-source.law.txt -o {md} --report {report}");
-        Assert.Equal(0, run.ExitCode);
+        var input = Path.Combine(TestHelpers.RepoRoot, "samples", "import-source.law.txt");
+        var run = TestHelpers.RunZuke($"import {TestHelpers.QuoteArg(input)} -o {TestHelpers.QuoteArg(md)} --report {TestHelpers.QuoteArg(report)}");
+        TestHelpers.AssertExitCode(run, 0);
         var text = File.ReadAllText(report);
         Assert.Contains("Input:", text);
         Assert.Contains("Output:", text);
@@ -66,8 +82,8 @@ public class ImportMapTests
         File.WriteAllText(src, "題名\n（令和六年規則第一号）\n\n第一条\n  一　項本文\n    イ　子号本文\n");
         var md = Path.GetTempFileName();
         var map = Path.GetTempFileName();
-        var run = TestHelpers.RunProcess("dotnet", $"run --project src/Zuke.Cli -- import {src} -o {md} --map {map} --reference-labels used");
-        Assert.Equal(0, run.ExitCode);
+        var run = TestHelpers.RunZuke($"import {TestHelpers.QuoteArg(src)} -o {TestHelpers.QuoteArg(md)} --map {TestHelpers.QuoteArg(map)} --reference-labels used");
+        TestHelpers.AssertExitCode(run, 0);
         var json = File.ReadAllText(map);
         Assert.Contains("\"Kind\": \"Article\"", json);
         Assert.Contains("\"Kind\": \"Paragraph\"", json);
@@ -86,8 +102,9 @@ public class ConvertBothTests
     {
         var xml = Path.GetTempFileName();
         var law = Path.GetTempFileName();
-        var run = TestHelpers.RunProcess("dotnet", $"run --project src/Zuke.Cli -- convert samples/work-rules.md --to both --xml-output {xml} --lawtext-output {law}");
-        Assert.Equal(0, run.ExitCode);
+        var input = Path.Combine(TestHelpers.RepoRoot, "samples", "work-rules.md");
+        var run = TestHelpers.RunZuke($"convert {TestHelpers.QuoteArg(input)} --to both --xml-output {TestHelpers.QuoteArg(xml)} --lawtext-output {TestHelpers.QuoteArg(law)}");
+        TestHelpers.AssertExitCode(run, 0);
         Assert.True(File.Exists(xml));
         Assert.True(File.Exists(law));
         var lawtext = File.ReadAllText(law);
@@ -98,9 +115,10 @@ public class ConvertBothTests
     [Fact]
     public void ConvertBothRejectsInvalidOutputOptions()
     {
-        var run1 = TestHelpers.RunProcess("dotnet", "run --project src/Zuke.Cli -- convert samples/work-rules.md --to both -o out.xml");
-        var run2 = TestHelpers.RunProcess("dotnet", "run --project src/Zuke.Cli -- convert samples/work-rules.md --to both --xml-output out.xml");
-        var run3 = TestHelpers.RunProcess("dotnet", "run --project src/Zuke.Cli -- convert samples/work-rules.md --to both --lawtext-output out.law.txt");
+        var input = Path.Combine(TestHelpers.RepoRoot, "samples", "work-rules.md");
+        var run1 = TestHelpers.RunZuke($"convert {TestHelpers.QuoteArg(input)} --to both -o out.xml");
+        var run2 = TestHelpers.RunZuke($"convert {TestHelpers.QuoteArg(input)} --to both --xml-output out.xml");
+        var run3 = TestHelpers.RunZuke($"convert {TestHelpers.QuoteArg(input)} --to both --lawtext-output out.law.txt");
         Assert.NotEqual(0, run1.ExitCode);
         Assert.NotEqual(0, run2.ExitCode);
         Assert.NotEqual(0, run3.ExitCode);
@@ -116,20 +134,22 @@ public class WordToZukeWorkflowAcceptanceTests
         var xml = Path.GetTempFileName();
         var law = Path.GetTempFileName();
 
-        var audit = TestHelpers.RunProcess("dotnet", "run --project src/Zuke.Cli -- audit samples/import-source.law.txt");
-        Assert.Equal(0, audit.ExitCode);
+        var inputLaw = Path.Combine(TestHelpers.RepoRoot, "samples", "import-source.law.txt");
+        var inputMd = Path.Combine(TestHelpers.RepoRoot, "samples", "work-rules.md");
+        var audit = TestHelpers.RunZuke($"audit {TestHelpers.QuoteArg(inputLaw)}");
+        TestHelpers.AssertExitCode(audit, 0);
 
-        var import = TestHelpers.RunProcess("dotnet", $"run --project src/Zuke.Cli -- import samples/import-source.law.txt -o {md}");
-        Assert.Equal(0, import.ExitCode);
+        var import = TestHelpers.RunZuke($"import {TestHelpers.QuoteArg(inputLaw)} -o {TestHelpers.QuoteArg(md)}");
+        TestHelpers.AssertExitCode(import, 0);
 
-        var convert = TestHelpers.RunProcess("dotnet", $"run --project src/Zuke.Cli -- convert {md} --to both --xml-output {xml} --lawtext-output {law}");
-        Assert.Equal(0, convert.ExitCode);
+        var convert = TestHelpers.RunZuke($"convert {TestHelpers.QuoteArg(md)} --to both --xml-output {TestHelpers.QuoteArg(xml)} --lawtext-output {TestHelpers.QuoteArg(law)}");
+        TestHelpers.AssertExitCode(convert, 0);
         var lawtext = File.ReadAllText(law);
         Assert.DoesNotContain("{{参照:", lawtext);
         Assert.DoesNotContain("🍣", lawtext);
 
         File.AppendAllText(md, "\n### （追加条） [条:追加条]\n追加本文\n");
-        var diff = TestHelpers.RunProcess("dotnet", $"run --project src/Zuke.Cli -- diff samples/work-rules.md {md}");
+        var diff = TestHelpers.RunZuke($"diff {TestHelpers.QuoteArg(inputMd)} {TestHelpers.QuoteArg(md)}");
         Assert.NotEqual(0, diff.ExitCode);
     }
 }

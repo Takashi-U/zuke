@@ -7,11 +7,12 @@ public class ImportEnhancementCliTests
     [Fact]
     public void ImportCommandCreatesReportAndMap()
     {
+        var input = Path.Combine(TestHelpers.RepoRoot, "samples", "import-source.law.txt");
         var md = Path.GetTempFileName();
         var report = Path.GetTempFileName();
         var map = Path.GetTempFileName();
-        var run = TestHelpers.RunProcess("dotnet", $"run --project src/Zuke.Cli -- import samples/import-source.law.txt -o {md} --report {report} --map {map}");
-        Assert.Equal(0, run.ExitCode);
+        var run = TestHelpers.RunZuke($"import {TestHelpers.QuoteArg(input)} -o {TestHelpers.QuoteArg(md)} --report {TestHelpers.QuoteArg(report)} --map {TestHelpers.QuoteArg(map)}");
+        TestHelpers.AssertExitCode(run, 0);
         Assert.Contains("Lawtext Import Report", File.ReadAllText(report));
         var json = File.ReadAllText(map);
         Assert.Contains("\"Kind\": \"Article\"", json);
@@ -21,7 +22,8 @@ public class ImportEnhancementCliTests
     [Fact]
     public void AuditCommandWorks()
     {
-        var run = TestHelpers.RunProcess("dotnet", "run --project src/Zuke.Cli -- audit samples/import-source.law.txt");
-        Assert.Equal(0, run.ExitCode);
+        var input = Path.Combine(TestHelpers.RepoRoot, "samples", "import-source.law.txt");
+        var run = TestHelpers.RunZuke($"audit {TestHelpers.QuoteArg(input)}");
+        TestHelpers.AssertExitCode(run, 0);
     }
 }

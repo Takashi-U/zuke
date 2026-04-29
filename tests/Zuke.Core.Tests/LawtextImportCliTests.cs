@@ -7,9 +7,11 @@ public class LawtextImportCliTests
     [Fact]
     public void ImportCommandCreatesMarkdown()
     {
+        var input = Path.Combine(TestHelpers.RepoRoot, "samples", "import-source.law.txt");
+        Assert.True(File.Exists(input), $"Missing sample file: {input}");
         var outPath = Path.GetTempFileName();
-        var run = TestHelpers.RunProcess("dotnet", $"run --project src/Zuke.Cli -- import samples/import-source.law.txt -o {outPath}");
-        Assert.Equal(0, run.ExitCode);
+        var run = TestHelpers.RunZuke($"import {TestHelpers.QuoteArg(input)} -o {TestHelpers.QuoteArg(outPath)}");
+        TestHelpers.AssertExitCode(run, 0);
         var md = File.ReadAllText(outPath);
         Assert.Contains("---", md);
         Assert.Contains("# 総則", md);
