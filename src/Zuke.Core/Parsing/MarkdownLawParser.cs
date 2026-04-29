@@ -62,6 +62,7 @@ public sealed class MarkdownLawParser
             if (TryParseArticleHeading(line, currentSection is not null, out var headingText))
             {
                 articleNo++;
+                var headingStartsWithSupplement = headingText.TrimStart().StartsWith("附則", StringComparison.Ordinal);
                 var (caption, articleRefName) = ParseHeading(headingText, "条");
                 var articleStart = i + 1;
                 i++;
@@ -87,7 +88,7 @@ public sealed class MarkdownLawParser
                 {
                     articleNumber = parsedNumber;
                 }
-                var isSupplementaryProvision = string.Equals(caption, "附則", StringComparison.Ordinal);
+                var isSupplementaryProvision = headingStartsWithSupplement || string.Equals(caption, "附則", StringComparison.Ordinal);
                 var articleTitleText = isSupplementaryProvision
                     ? "附則"
                     : ArticleNumberFormatter.ToArticleTitle(articleNumber, false);
