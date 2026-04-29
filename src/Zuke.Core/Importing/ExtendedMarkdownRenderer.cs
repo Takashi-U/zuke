@@ -1,5 +1,6 @@
 using System.Text;
 using Zuke.Core.Model;
+using Zuke.Core.Numbering;
 
 namespace Zuke.Core.Importing;
 
@@ -80,11 +81,12 @@ public sealed class ExtendedMarkdownRenderer
         void RenderItem(ArticleNode article, ParagraphNode paragraph, ItemNode item)
         {
             var label = ShouldEmitLabel(item.ReferenceName, "Item") ? $"[号:{item.ReferenceName}] " : string.Empty;
-            Append($"- {label}{item.SentenceText}");
+            var itemTitle = string.IsNullOrWhiteSpace(item.ItemTitle) ? JapaneseNumberFormatter.ToItemTitle(item.Number, false) : item.ItemTitle;
+            Append($"- {label}{itemTitle}　{item.SentenceText}");
             mapping.Add(CreateMapping("Item", item.Location?.Line, $"{BuildParagraphNumber(article, paragraph)}第{item.Number}号", item.ReferenceName, null));
             foreach (var subitem in item.Children)
             {
-                Append($"  - {subitem.ItemTitle} {subitem.SentenceText}");
+                Append($"  {subitem.ItemTitle}　{subitem.SentenceText}");
                 mapping.Add(CreateMapping("Subitem1", subitem.Location?.Line, $"{BuildParagraphNumber(article, paragraph)}第{item.Number}号{subitem.ItemTitle}", subitem.ReferenceName, null));
             }
         }

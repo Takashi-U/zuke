@@ -169,8 +169,11 @@ public sealed class LawtextRenderer
     {
         foreach (var item in items)
         {
+            var itemTitle = string.IsNullOrWhiteSpace(item.ItemTitle)
+                ? JapaneseNumberFormatter.ToItemTitle(item.Number, options.ArabicNumbers)
+                : item.ItemTitle;
             writer.WriteLine(LawtextLineKind.Item,
-                $"{options.Layout.ItemIndent}{JapaneseNumberFormatter.ToItemTitle(item.Number, options.ArabicNumbers)}{options.Layout.Separator}{item.SentenceText}");
+                $"{options.Layout.ItemIndent}{itemTitle}{options.Layout.Separator}{item.SentenceText}");
 
             foreach (var subitem in item.Children)
             {
