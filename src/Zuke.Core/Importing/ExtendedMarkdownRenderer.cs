@@ -50,6 +50,10 @@ public sealed class ExtendedMarkdownRenderer
             var articleTitle = article.ArticleNumber is null
                 ? BuildArticleNumber(article)
                 : $"第{article.ArticleNumber.BaseNumber}条{string.Concat(article.ArticleNumber.BranchNumbers.Select(b => $"の{b}"))}";
+            if (article.ArticleTitle == "附則")
+            {
+                articleTitle = "附則";
+            }
             Append($"### {articleTitle}{(string.IsNullOrWhiteSpace(article.Caption) ? "" : $" {article.Caption}")}{label}");
             mapping.Add(CreateMapping("Article", article.Location?.Line, BuildArticleNumber(article), article.ReferenceName, article.Caption));
             Append("");

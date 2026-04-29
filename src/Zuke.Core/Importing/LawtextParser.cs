@@ -14,6 +14,7 @@ public sealed class LawtextParser
     private static readonly Regex ParagraphRegex = new(@"^(?<n>[0-9０-９]+)\s*[　 ]*(?<s>.*)$", RegexOptions.Compiled);
     private static readonly Regex ItemRegex = new(@"^\s*(?<n>[一二三四五六七八九十]+)\s*[　 ](?<s>.+)$", RegexOptions.Compiled);
     private static readonly Regex Subitem1Regex = new(@"^\s*(?<n>[イロハニホヘトチリヌルヲワカヨタレソツネナラムウヰノオクヤマケフコエテ])\s*[　 ](?<s>.+)$", RegexOptions.Compiled);
+    private static readonly Regex SupplementaryProvisionRegex = new(@"^\s*附則\s*$", RegexOptions.Compiled);
 
     public (LawDocumentModel Model, IReadOnlyList<DiagnosticMessage> Diagnostics) Parse(string lawtext, string? filePath)
     {
@@ -132,9 +133,24 @@ public sealed class LawtextParser
                 continue;
             }
 
+            if (SupplementaryProvisionRegex.IsMatch(raw))
+            {
+                FlushArticle();
+                currentArticle = new(99999, null, "", "附則", new(filePath, i + 1, 1), []);
+                currentParagraph = new(1, null, null, string.Empty, new(filePath, i + 1, 1), []);
+                items = [];
+                continue;
+            }
+
             if (currentParagraph is not null)
             {
-                currentParagraph = currentParagraph with { SentenceText = string.Concat(currentParagraph.SentenceText, trim) };
+                var lineText = raw.TrimEnd();
+                currentParagraph = currentParagraph with
+                {
+                    SentenceText = string.IsNullOrEmpty(currentParagraph.SentenceText)
+                        ? lineText
+                        : $"{currentParagraph.SentenceText}\n{lineText}"
+                };
                 continue;
             }
 

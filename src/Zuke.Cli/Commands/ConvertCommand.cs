@@ -20,7 +20,7 @@ public sealed class ConvertCommand : Command<ConvertCommand.Settings>
         [CommandOption("--strict")] public bool Strict { get; set; }
         [CommandOption("--xml-output <PATH>")] public string? XmlOutput { get; set; }
         [CommandOption("--lawtext-output <PATH>")] public string? LawtextOutput { get; set; }
-        [CommandOption("--number-style <STYLE>")] public string NumberStyle { get; set; } = "kanji";
+        [CommandOption("--number-style <STYLE>")] public string NumberStyle { get; set; } = "auto";
         [CommandOption("--emoji <MODE>")] public string Emoji { get; set; } = "auto";
         [CommandOption("--no-color")] public bool NoColor { get; set; }
         [CommandOption("--plain")] public bool Plain { get; set; }
@@ -34,7 +34,8 @@ public sealed class ConvertCommand : Command<ConvertCommand.Settings>
         var text = File.ReadAllText(settings.Input);
         var frontMatter = FrontMatterParser.ParseDetailed(text);
         var requireFrontMatter = !string.Equals(settings.To, "lawtext", StringComparison.OrdinalIgnoreCase);
-        var result = new LawMarkdownCompiler().Compile(text, settings.Input, new CompileOptions(settings.Strict, settings.NumberStyle == "arabic", requireFrontMatter));
+        var resolvedNumberStyle = ResolveNumberStyle(settings.NumberStyle, frontMatter);
+        var result = new LawMarkdownCompiler().Compile(text, settings.Input, new CompileOptions(settings.Strict, resolvedNumberStyle == "arabic", requireFrontMatter));
         reporter.ReportDiagnostics(result.Diagnostics);
         if (result.HasErrors || result.Document is null) return 1;
 
@@ -46,7 +47,7 @@ public sealed class ConvertCommand : Command<ConvertCommand.Settings>
                 reporter.Info("--to both では --xml-output と --lawtext-output が必須で、-o は使用できません。");
                 return 1;
             }
-            var lawtext = new LawtextRenderer().Render(result.Document, LawtextRenderOptions.Default with { ArabicNumbers = settings.NumberStyle == "arabic" });
+            var lawtext = new LawtextRenderer().Render(result.Document, LawtextRenderOptions.Default with { ArabicNumbers = resolvedNumberStyle == "arabic" });
             var renderDiags = LawtextRenderer.ValidateRenderedText(lawtext);
             reporter.ReportDiagnostics(renderDiags);
             if (renderDiags.Any(x => x.Severity == Zuke.Core.Model.DiagnosticSeverity.Error)) return 1;
@@ -54,7 +55,7 @@ public sealed class ConvertCommand : Command<ConvertCommand.Settings>
             var xmlMetaDiagsBoth = FrontMatterParser.ValidateForXml(xmlModelBoth.Metadata, settings.Input);
             reporter.ReportDiagnostics(xmlMetaDiagsBoth);
             if (xmlMetaDiagsBoth.Any(x => x.Severity == Zuke.Core.Model.DiagnosticSeverity.Error)) return 1;
-            var docBoth = new LawXmlRenderer().Render(xmlModelBoth, LawXmlRenderOptions.Default with { ArabicNumbers = settings.NumberStyle == "arabic" });
+            var docBoth = new LawXmlRenderer().Render(xmlModelBoth, LawXmlRenderOptions.Default with { ArabicNumbers = resolvedNumberStyle == "arabic" });
             if (!settings.SkipValidation)
             {
                 var xsd = settings.Xsd ?? ZukeXsdProvider.ResolveDefaultPath();
@@ -71,7 +72,7 @@ public sealed class ConvertCommand : Command<ConvertCommand.Settings>
         {
             var lawtextModel = ApplyLawtextMetadataFallback(result.Document.Document, frontMatter, settings.Input);
             var renderer = new LawtextRenderer();
-            var lawtext = renderer.Render(result.Document with { Document = lawtextModel }, LawtextRenderOptions.Default with { ArabicNumbers = settings.NumberStyle == "arabic" });
+            var lawtext = renderer.Render(result.Document with { Document = lawtextModel }, LawtextRenderOptions.Default with { ArabicNumbers = resolvedNumberStyle == "arabic" });
             var renderDiags = LawtextRenderer.ValidateRenderedText(lawtext);
             reporter.ReportDiagnostics(renderDiags);
             if (renderDiags.Any(x => x.Severity == Zuke.Core.Model.DiagnosticSeverity.Error)) return 1;
@@ -85,7 +86,7 @@ public sealed class ConvertCommand : Command<ConvertCommand.Settings>
         var xmlMetaDiags = FrontMatterParser.ValidateForXml(xmlModel.Metadata, settings.Input);
         reporter.ReportDiagnostics(xmlMetaDiags);
         if (xmlMetaDiags.Any(x => x.Severity == Zuke.Core.Model.DiagnosticSeverity.Error)) return 1;
-        var doc = new LawXmlRenderer().Render(xmlModel, LawXmlRenderOptions.Default with { ArabicNumbers = settings.NumberStyle == "arabic" });
+        var doc = new LawXmlRenderer().Render(xmlModel, LawXmlRenderOptions.Default with { ArabicNumbers = resolvedNumberStyle == "arabic" });
         if (!settings.SkipValidation)
         {
             var xsd = settings.Xsd ?? ZukeXsdProvider.ResolveDefaultPath();
@@ -109,6 +110,14 @@ public sealed class ConvertCommand : Command<ConvertCommand.Settings>
                 LawTitle = inferredTitle
             }
         };
+    }
+
+    private static string ResolveNumberStyle(string cliValue, FrontMatterParseResult frontMatter)
+    {
+        if (string.Equals(cliValue, "arabic", StringComparison.OrdinalIgnoreCase)) return "arabic";
+        if (string.Equals(cliValue, "kanji", StringComparison.OrdinalIgnoreCase)) return "kanji";
+        if (frontMatter.HasFrontMatter && string.Equals(frontMatter.Metadata.NumberStyle, "arabic", StringComparison.OrdinalIgnoreCase)) return "arabic";
+        return "kanji";
     }
 
     private static string InferLawTitle(Zuke.Core.Model.LawDocumentModel model, string inputPath)
