@@ -22,6 +22,7 @@ public sealed class ExtendedMarkdownRenderer
             Append($"num: {model.Metadata.Num}");
             Append($"lawType: {model.Metadata.LawType}");
             Append($"lang: {model.Metadata.Lang}");
+            Append($"numberStyle: {model.Metadata.NumberStyle}");
             Append("---");
             Append("");
         }
@@ -46,7 +47,10 @@ public sealed class ExtendedMarkdownRenderer
         void RenderArticle(ArticleNode article)
         {
             var label = ShouldEmitLabel(article.ReferenceName, "Article") ? $" [条:{article.ReferenceName}]" : "";
-            Append($"### {(string.IsNullOrWhiteSpace(article.Caption) ? $"条 {article.ReferenceName}" : article.Caption)}{label}");
+            var articleTitle = article.ArticleNumber is null
+                ? BuildArticleNumber(article)
+                : $"第{article.ArticleNumber.BaseNumber}条{string.Concat(article.ArticleNumber.BranchNumbers.Select(b => $"の{b}"))}";
+            Append($"### {articleTitle}{(string.IsNullOrWhiteSpace(article.Caption) ? "" : $" {article.Caption}")}{label}");
             mapping.Add(CreateMapping("Article", article.Location?.Line, BuildArticleNumber(article), article.ReferenceName, article.Caption));
             Append("");
             foreach (var paragraph in article.Paragraphs) RenderParagraph(article, paragraph);

@@ -283,6 +283,15 @@ public sealed class MarkdownLawParser
             return true;
         }
 
+        var bulletSubitem = Regex.Match(text, @"^(?:[-*]|・)\s*(?<title>[イロハニホヘトチリヌルヲワカヨタレソツネナラムウヰノオクヤマケフコエテアサキユメミシヱヒモセス])\s*[　 ](?<text>.+)$");
+        if (bulletSubitem.Success)
+        {
+            title = bulletSubitem.Groups["title"].Value;
+            sentence = bulletSubitem.Groups["text"].Value.Trim();
+            isSubitem1 = true;
+            return true;
+        }
+
         var bullet = Regex.Match(text, @"^(?:[-*]|・)\s*(?<text>.+)$");
         if (bullet.Success)
         {

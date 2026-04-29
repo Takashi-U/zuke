@@ -37,6 +37,7 @@ public sealed class LawtextParser
         }
 
         var metadata = InferMetadata(title, lawNum, filePath, diags);
+        var detectedArticleNumberStyle = "kanji";
 
         var chapters = new List<ChapterNode>();
         var direct = new List<ArticleNode>();
@@ -89,6 +90,10 @@ public sealed class LawtextParser
             {
                 FlushArticle();
                 var articleText = article.Groups["num"].Value;
+                if (detectedArticleNumberStyle == "kanji" && Regex.IsMatch(articleText, "[0-9０-９]"))
+                {
+                    detectedArticleNumberStyle = "arabic";
+                }
                 if (!ArticleNumberFormatter.TryParseArticleNumber(articleText, out var articleNumber))
                 {
                     diags.Add(new(DiagnosticSeverity.Warning, "LMD101", "Article枝番号の形式が不正です。", new(filePath, i + 1, 1), []));
@@ -140,7 +145,7 @@ public sealed class LawtextParser
         FlushSection();
         FlushChapter();
 
-        var model = new LawDocumentModel(metadata, chapters, direct, diags);
+        var model = new LawDocumentModel(metadata with { NumberStyle = detectedArticleNumberStyle }, chapters, direct, diags);
         return (model, diags);
 
         void FlushParagraph()
