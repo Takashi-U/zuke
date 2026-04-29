@@ -192,8 +192,8 @@ public sealed class LawtextParser
     private static LawMetadata InferMetadata(string lawTitle, string lawNum, string? filePath, List<DiagnosticMessage> diags)
     {
         var era = "Reiwa";
-        var year = 0;
-        var num = 0;
+        var year = 1;
+        var num = 1;
         var lawType = "Misc";
         var m = Regex.Match(lawNum, @"^(?<era>令和|平成|昭和)(?<y>[一二三四五六七八九十百千0-9０-９]+)年(?<type>法律|規則)第(?<n>[一二三四五六七八九十百千0-9０-９]+)号$");
         if (m.Success)
@@ -203,7 +203,11 @@ public sealed class LawtextParser
             num = ParseNumber(m.Groups["n"].Value);
             lawType = m.Groups["type"].Value == "法律" ? "Act" : "Misc";
         }
-        else if (!string.IsNullOrWhiteSpace(lawNum))
+        else if (string.IsNullOrWhiteSpace(lawNum))
+        {
+            diags.Add(new(DiagnosticSeverity.Warning, "LMD090", "LawNum がありません。社内規程として扱います。", new(filePath, 1, 1), []));
+        }
+        else
         {
             diags.Add(new(DiagnosticSeverity.Warning, "LMD090", "Lawtextの法令番号からメタデータを完全には推定できません。", new(filePath, 1, 1), []));
         }

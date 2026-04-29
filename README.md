@@ -200,6 +200,26 @@ zuke audit input.law.txt
 - import後Markdownは再コンパイル・再レンダリング検証されます。
 - `--skip-roundtrip-check` は非推奨です。
 
+
+## メタデータ要件（出力別）
+
+- 社内規程・就業規則には、正式な法令番号が存在しない場合があります。
+- Lawtext出力では `lawTitle` のみ必須です。`lawNum` が空の場合、Lawtext冒頭の法令番号行は出力されません。
+- XML出力では法令標準XMLの都合上、`lawTitle/lawNum/era/year/num/lawType/lang` が必要です。
+- 社内規程をXML化する場合は `--metadata-profile internal-rule` を使うと不足値を補完できます。
+- `lawNum: none` より、`lawNum: 社内規程` もしくは `--metadata-profile internal-rule` の利用を推奨します。
+
+### --metadata-profile
+
+`zuke convert` は以下のプロファイルをサポートします。
+
+- `--metadata-profile default`（既定）
+  - 従来どおり。XML出力時は完全なメタデータを要求します。
+- `--metadata-profile internal-rule`
+  - 社内規程向け。不足メタデータを次で補完します。
+  - `lawNum: 社内規程`, `era: Reiwa`, `year: 1`, `num: 1`, `lawType: Misc`, `lang: ja`
+  - `lawTitle` は補完しません（必須）。
+
 ## XMLとLawtextの同時出力
 
 ```bash
