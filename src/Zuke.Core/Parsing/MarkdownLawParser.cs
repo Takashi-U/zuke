@@ -322,6 +322,14 @@ public sealed class MarkdownLawParser
             return true;
         }
 
+        var bulletItem = Regex.Match(text, @"^(?:[-*]|・)\s*(?<title>[一二三四五六七八九十]+)\s*[　 ](?<text>.+)$");
+        if (bulletItem.Success)
+        {
+            title = bulletItem.Groups["title"].Value;
+            sentence = bulletItem.Groups["text"].Value.Trim();
+            return true;
+        }
+
         var bullet = Regex.Match(text, @"^(?:[-*]|・)\s*(?<text>.+)$");
         if (bullet.Success)
         {
@@ -353,9 +361,19 @@ public sealed class MarkdownLawParser
             return true;
         }
 
+        var indentedSubitem = Regex.Match(text, @"^\s{2,}(?<title>[イロハニホヘトチリヌルヲワカヨタレソツネナラムウヰノオクヤマケフコエテアサキユメミシヱヒモセス])\s*[　 ](?<text>.+)$");
+        if (indentedSubitem.Success)
+        {
+            title = indentedSubitem.Groups["title"].Value;
+            sentence = indentedSubitem.Groups["text"].Value.Trim();
+            isSubitem1 = true;
+            return true;
+        }
+
         var item = Regex.Match(text, @"^(?<title>[一二三四五六七八九十]+)\s*[　 ](?<text>.+)$");
         if (item.Success)
         {
+            title = item.Groups["title"].Value;
             sentence = item.Groups["text"].Value.Trim();
             return true;
         }
