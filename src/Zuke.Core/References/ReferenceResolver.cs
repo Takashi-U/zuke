@@ -61,54 +61,43 @@ public sealed class ReferenceResolver
                 diags.Add(new(DiagnosticSeverity.Error, "LMD026", $"未対応の参照オプションです: {rawOpt}", loc, []));
                 return rawName;
             }
-
             if (!table.TryGetValue(normalized, out var target))
             {
                 diags.Add(new(DiagnosticSeverity.Error, "LMD021", $"参照を解決できません: {rawName}", loc, []));
                 return rawName;
             }
 
+            var currentIndex = FindCurrentArticleIndex(currentArticle, table);
             if (option == ReferenceOption.Relative)
             {
-                if (target.Kind == LawElementKind.Article && target.ArticleNumber == currentArticle.Number - 1)
-                {
-                    return "前条";
-                }
-
-                if (target.Kind == LawElementKind.Paragraph && target.ArticleNumber == currentArticle.Number && target.ParagraphNumber == currentParagraph.Number - 1)
-                {
-                    return "前項";
-                }
-
-                if (target.Kind == LawElementKind.Item && currentItem is not null && target.ArticleNumber == currentArticle.Number && target.ParagraphNumber == currentParagraph.Number && target.ItemNumber == currentItem.Number - 1)
-                {
-                    return "前号";
-                }
-
+                if (target.Kind == LawElementKind.Article && currentIndex > 1 && target.DocumentArticleIndex == currentIndex - 1) return "前条";
+                if (target.Kind == LawElementKind.Paragraph && target.DocumentArticleIndex == currentIndex && target.ParagraphNumber == currentParagraph.Number - 1) return "前項";
+                if (target.Kind == LawElementKind.Item && currentItem is not null && target.DocumentArticleIndex == currentIndex && target.ParagraphNumber == currentParagraph.Number && target.ItemNumber == currentItem.Number - 1) return "前号";
                 diags.Add(new(DiagnosticSeverity.Error, "LMD027", $"相対参照が不正です: {rawName}", loc, []));
                 return rawName;
             }
 
             return option switch
             {
-                ReferenceOption.ArticleOnly => JapaneseNumberFormatter.ToArticle(target.ArticleNumber, arabicNumbers),
-                ReferenceOption.Full => RenderFull(target, arabicNumbers),
-                ReferenceOption.Auto => RenderAuto(target, arabicNumbers),
+                ReferenceOption.ArticleOnly => ArticleNumberFormatter.ToArticleTitle(target.ArticleNumberValue, arabicNumbers),
+                ReferenceOption.Full => RenderAuto(target, arabicNumbers),
                 _ => RenderAuto(target, arabicNumbers)
             };
         });
     }
 
-    private static string RenderAuto(ReferenceDefinition target, bool arabicNumbers)
+    private static int FindCurrentArticleIndex(ArticleNode article, IReadOnlyDictionary<string, ReferenceDefinition> table)
     {
-        return target.Kind switch
-        {
-            LawElementKind.Article => JapaneseNumberFormatter.ToArticle(target.ArticleNumber, arabicNumbers),
-            LawElementKind.Paragraph => $"{JapaneseNumberFormatter.ToArticle(target.ArticleNumber, arabicNumbers)}{JapaneseNumberFormatter.ToParagraphReference(target.ParagraphNumber ?? 1, arabicNumbers)}",
-            LawElementKind.Item => $"{JapaneseNumberFormatter.ToArticle(target.ArticleNumber, arabicNumbers)}{JapaneseNumberFormatter.ToParagraphReference(target.ParagraphNumber ?? 1, arabicNumbers)}{JapaneseNumberFormatter.ToItemReference(target.ItemNumber ?? 1, arabicNumbers)}",
-            _ => target.RawName
-        };
+        if (!string.IsNullOrWhiteSpace(article.ReferenceName) && ReferenceNameNormalizer.TryNormalize(article.ReferenceName, out var key) && table.TryGetValue(key, out var rd)) return rd.DocumentArticleIndex;
+        return -1;
     }
 
-    private static string RenderFull(ReferenceDefinition target, bool arabicNumbers) => RenderAuto(target, arabicNumbers);
+    private static string RenderAuto(ReferenceDefinition target, bool arabicNumbers)
+        => target.Kind switch
+        {
+            LawElementKind.Article => ArticleNumberFormatter.ToArticleTitle(target.ArticleNumberValue, arabicNumbers),
+            LawElementKind.Paragraph => $"{ArticleNumberFormatter.ToArticleTitle(target.ArticleNumberValue, arabicNumbers)}{JapaneseNumberFormatter.ToParagraphReference(target.ParagraphNumber ?? 1, arabicNumbers)}",
+            LawElementKind.Item => $"{ArticleNumberFormatter.ToArticleTitle(target.ArticleNumberValue, arabicNumbers)}{JapaneseNumberFormatter.ToParagraphReference(target.ParagraphNumber ?? 1, arabicNumbers)}{JapaneseNumberFormatter.ToItemReference(target.ItemNumber ?? 1, arabicNumbers)}",
+            _ => target.RawName
+        };
 }
