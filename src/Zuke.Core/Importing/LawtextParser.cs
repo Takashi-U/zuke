@@ -42,6 +42,7 @@ public sealed class LawtextParser
 
         var chapters = new List<ChapterNode>();
         var direct = new List<ArticleNode>();
+        var supplementary = new List<SupplementaryProvisionNode>();
         ChapterNode? currentChapter = null;
         SectionNode? currentSection = null;
         var chArticles = new List<ArticleNode>();
@@ -53,12 +54,27 @@ public sealed class LawtextParser
         var items = new List<ItemNode>();
 
         string? pendingCaption = null;
+        SupplementaryProvisionNode? currentSupplementary = null;
+        var supplementaryLines = new List<string>();
 
         for (var i = Math.Max(index, 0); i < lines.Length; i++)
         {
             var raw = lines[i];
             var trim = raw.Trim();
             if (string.IsNullOrWhiteSpace(trim)) continue;
+
+            if (currentSupplementary is not null)
+            {
+                if (SupplementaryProvisionRegex.IsMatch(raw))
+                {
+                    FlushSupplementary();
+                    currentSupplementary = new SupplementaryProvisionNode("附則", new(filePath, i + 1, 1), []);
+                    continue;
+                }
+
+                supplementaryLines.Add(raw.TrimEnd());
+                continue;
+            }
 
             var cap = CaptionRegex.Match(trim);
             if (cap.Success)
@@ -136,9 +152,10 @@ public sealed class LawtextParser
             if (SupplementaryProvisionRegex.IsMatch(raw))
             {
                 FlushArticle();
-                currentArticle = new(99999, null, "", "附則", new(filePath, i + 1, 1), []);
-                currentParagraph = new(1, null, null, string.Empty, new(filePath, i + 1, 1), []);
-                items = [];
+                FlushSection();
+                FlushChapter();
+                FlushSupplementary();
+                currentSupplementary = new SupplementaryProvisionNode("附則", new(filePath, i + 1, 1), []);
                 continue;
             }
 
@@ -160,8 +177,9 @@ public sealed class LawtextParser
         FlushArticle();
         FlushSection();
         FlushChapter();
+        FlushSupplementary();
 
-        var model = new LawDocumentModel(metadata with { NumberStyle = detectedArticleNumberStyle }, chapters, direct, diags);
+        var model = new LawDocumentModel(metadata with { NumberStyle = detectedArticleNumberStyle }, chapters, direct, supplementary, diags);
         return (model, diags);
 
         void FlushParagraph()
@@ -188,6 +206,15 @@ public sealed class LawtextParser
             else if (currentChapter is not null) chArticles.Add(currentArticle);
             else direct.Add(currentArticle);
             currentArticle = null;
+        }
+
+
+        void FlushSupplementary()
+        {
+            if (currentSupplementary is null) return;
+            supplementary.Add(currentSupplementary with { Lines = [.. supplementaryLines] });
+            supplementaryLines = [];
+            currentSupplementary = null;
         }
 
         void FlushSection()

@@ -24,10 +24,6 @@ public sealed class NumberingService
     private static ArticleNode RenumberArticle(ArticleNode a, int no, bool arabic)
     {
         var ps = a.Paragraphs.Select((p,idx)=> p with { Number = idx+1, ParagraphNumText = JapaneseNumberFormatter.ToParagraphNum(idx+1)}).ToList();
-        if (a.ArticleTitle == "附則")
-        {
-            return a with { Number = no, Paragraphs = ps };
-        }
         var articleNumber = a.ArticleNumber.BaseNumber > 0 ? a.ArticleNumber : ArticleNumber.FromBase(no);
         return a with { Number = no, ArticleNumber = articleNumber, ArticleTitle = ArticleNumberFormatter.ToArticleTitle(articleNumber, arabic), Paragraphs = ps };
     }

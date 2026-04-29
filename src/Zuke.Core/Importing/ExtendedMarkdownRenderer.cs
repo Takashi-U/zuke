@@ -42,6 +42,17 @@ public sealed class ExtendedMarkdownRenderer
 
         foreach (var article in model.DirectArticles) RenderArticle(article);
 
+        foreach (var supplementaryProvision in model.SupplementaryProvisions)
+        {
+            Append($"## {supplementaryProvision.Title}");
+            Append("");
+            foreach (var line in supplementaryProvision.Lines)
+            {
+                Append(line);
+            }
+            Append("");
+        }
+
         return (sb.ToString().Replace("\r\n","\n"), mapping);
 
         void RenderArticle(ArticleNode article)
@@ -50,10 +61,6 @@ public sealed class ExtendedMarkdownRenderer
             var articleTitle = article.ArticleNumber is null
                 ? BuildArticleNumber(article)
                 : $"第{article.ArticleNumber.BaseNumber}条{string.Concat(article.ArticleNumber.BranchNumbers.Select(b => $"の{b}"))}";
-            if (article.ArticleTitle == "附則")
-            {
-                articleTitle = "附則";
-            }
             Append($"### {articleTitle}{(string.IsNullOrWhiteSpace(article.Caption) ? "" : $" {article.Caption}")}{label}");
             mapping.Add(CreateMapping("Article", article.Location?.Line, BuildArticleNumber(article), article.ReferenceName, article.Caption));
             Append("");
