@@ -32,7 +32,9 @@ public sealed class ConvertCommand : Command<ConvertCommand.Settings>
         var consoleOptions = ConsoleOptions.From(settings.Plain, settings.Emoji, settings.NoColor);
         var reporter = new ConsoleReporter(AnsiConsole.Console, consoleOptions);
         var text = File.ReadAllText(settings.Input);
-        var result = new LawMarkdownCompiler().Compile(text, settings.Input, new CompileOptions(settings.Strict, settings.NumberStyle == "arabic"));
+        var frontMatter = FrontMatterParser.ParseDetailed(text);
+        var requireFrontMatter = !string.Equals(settings.To, "lawtext", StringComparison.OrdinalIgnoreCase);
+        var result = new LawMarkdownCompiler().Compile(text, settings.Input, new CompileOptions(settings.Strict, settings.NumberStyle == "arabic", requireFrontMatter));
         reporter.ReportDiagnostics(result.Diagnostics);
         if (result.HasErrors || result.Document is null) return 1;
 
@@ -67,8 +69,9 @@ public sealed class ConvertCommand : Command<ConvertCommand.Settings>
 
         if (settings.To == "lawtext")
         {
+            var lawtextModel = ApplyLawtextMetadataFallback(result.Document.Document, frontMatter, settings.Input);
             var renderer = new LawtextRenderer();
-            var lawtext = renderer.Render(result.Document, LawtextRenderOptions.Default with { ArabicNumbers = settings.NumberStyle == "arabic" });
+            var lawtext = renderer.Render(result.Document with { Document = lawtextModel }, LawtextRenderOptions.Default with { ArabicNumbers = settings.NumberStyle == "arabic" });
             var renderDiags = LawtextRenderer.ValidateRenderedText(lawtext);
             reporter.ReportDiagnostics(renderDiags);
             if (renderDiags.Any(x => x.Severity == Zuke.Core.Model.DiagnosticSeverity.Error)) return 1;
@@ -93,6 +96,35 @@ public sealed class ConvertCommand : Command<ConvertCommand.Settings>
         doc.Save(settings.Output);
         reporter.Info($"法令XMLを出力しました: {settings.Output}");
         return 0;
+    }
+
+    private static Zuke.Core.Model.LawDocumentModel ApplyLawtextMetadataFallback(Zuke.Core.Model.LawDocumentModel model, FrontMatterParseResult frontMatter, string inputPath)
+    {
+        if (frontMatter.HasFrontMatter) return model;
+        var inferredTitle = InferLawTitle(model, inputPath);
+        return model with
+        {
+            Metadata = model.Metadata with
+            {
+                LawTitle = inferredTitle
+            }
+        };
+    }
+
+    private static string InferLawTitle(Zuke.Core.Model.LawDocumentModel model, string inputPath)
+    {
+        if (model.Chapters.Count > 0 && !string.IsNullOrWhiteSpace(model.Chapters[0].Title))
+        {
+            return model.Chapters[0].Title.Trim();
+        }
+
+        var fileName = Path.GetFileNameWithoutExtension(inputPath);
+        if (!string.IsNullOrWhiteSpace(fileName))
+        {
+            return fileName.Trim();
+        }
+
+        return "無題";
     }
 
     private static Zuke.Core.Model.LawDocumentModel ApplyMetadataProfile(Zuke.Core.Model.LawDocumentModel model, string profile)

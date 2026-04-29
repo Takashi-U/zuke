@@ -44,4 +44,32 @@ public class LawtextCliIntegrationTests
         TestHelpers.AssertExitCode(run, 1);
         Assert.Contains("+", run.StdOut);
     }
+
+    [Fact]
+    public void ConvertToLawtext_AllowsMissingFrontMatter_AndUsesFirstHeadingAsTitle()
+    {
+        var input = Path.GetTempFileName();
+        var output = Path.GetTempFileName();
+        File.WriteAllText(input, "# 育児・介護休業等に関する規則\n\n## 目的\n本文\n");
+
+        var run = TestHelpers.RunZuke($"convert {TestHelpers.QuoteArg(input)} -o {TestHelpers.QuoteArg(output)} --to lawtext");
+        TestHelpers.AssertExitCode(run, 0);
+        var text = File.ReadAllText(output, Encoding.UTF8);
+        Assert.StartsWith("育児・介護休業等に関する規則", text);
+    }
+
+    [Fact]
+    public void ConvertToLawtext_WithoutHeading_UsesFileNameAsTitle()
+    {
+        var dir = Path.Combine(Path.GetTempPath(), $"zuke-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(dir);
+        var input = Path.Combine(dir, "社内規程案.md");
+        var output = Path.GetTempFileName();
+        File.WriteAllText(input, "## 目的\n本文\n");
+
+        var run = TestHelpers.RunZuke($"convert {TestHelpers.QuoteArg(input)} -o {TestHelpers.QuoteArg(output)} --to lawtext");
+        TestHelpers.AssertExitCode(run, 0);
+        var text = File.ReadAllText(output, Encoding.UTF8);
+        Assert.StartsWith("社内規程案", text);
+    }
 }
