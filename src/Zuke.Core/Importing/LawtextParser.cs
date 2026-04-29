@@ -39,6 +39,7 @@ public sealed class LawtextParser
 
         var metadata = InferMetadata(title, lawNum, filePath, diags);
         var detectedArticleNumberStyle = "kanji";
+        var detectedParagraphNumberStyle = "fullwidth";
 
         var chapters = new List<ChapterNode>();
         var direct = new List<ArticleNode>();
@@ -128,7 +129,12 @@ public sealed class LawtextParser
             if (para.Success && currentArticle is not null)
             {
                 FlushParagraph();
-                currentParagraph = new(ParseNumber(para.Groups["n"].Value), null, para.Groups["n"].Value, para.Groups["s"].Value.Trim(), new(filePath, i + 1, 1), []);
+                var paraNumText = para.Groups["n"].Value;
+                if (detectedParagraphNumberStyle == "fullwidth" && Regex.IsMatch(paraNumText, "[0-9]"))
+                {
+                    detectedParagraphNumberStyle = "ascii";
+                }
+                currentParagraph = new(ParseNumber(paraNumText), null, paraNumText, para.Groups["s"].Value.Trim(), new(filePath, i + 1, 1), []);
                 continue;
             }
 
@@ -179,7 +185,7 @@ public sealed class LawtextParser
         FlushChapter();
         FlushSupplementary();
 
-        var model = new LawDocumentModel(metadata with { NumberStyle = detectedArticleNumberStyle }, chapters, direct, supplementary, diags);
+        var model = new LawDocumentModel(metadata with { NumberStyle = detectedArticleNumberStyle, ParagraphNumberStyle = detectedParagraphNumberStyle }, chapters, direct, supplementary, diags);
         return (model, diags);
 
         void FlushParagraph()

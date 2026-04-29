@@ -16,6 +16,7 @@ public sealed class LawtextReferenceResolver
         var detector = new LawtextReferenceDetector();
         foreach (var token in detector.Detect(sentence).OrderByDescending(x => x.Index))
         {
+            if (IsProtectedReferenceToken(sentence, token)) continue;
             if (token.Text is "及び" or "又は") { AddDiag("LMD094", "複数条項参照はMVP未対応です。"); continue; }
             if (token.Text == "から") { AddDiag("LMD095", "範囲参照はMVP未対応です。"); continue; }
             if (token.Text is "次条" or "次項" or "次号" or "同条" or "同項" or "同号") { AddDiag("LMD092", "Lawtextの条項参照を解決できません。"); continue; }
@@ -41,6 +42,13 @@ public sealed class LawtextReferenceResolver
 
         void AddDiag(string code, string message)
             => diags.Add(new(options.Strict ? DiagnosticSeverity.Error : DiagnosticSeverity.Warning, code, message, loc, []));
+    }
+
+    private static bool IsProtectedReferenceToken(string sentence, LawtextReferenceToken token)
+    {
+        var protectedRegex = new Regex(@"(?:本条|同条|前条|次条)第[0-9０-９一二三四五六七八九十百千]+項(?:第[0-9０-９一二三四五六七八九十百千]+号)?(?:及び第[0-9０-９一二三四五六七八九十百千]+号)?(?:又は第[0-9０-９一二三四五六七八九十百千]+項)?(?:から第[0-9０-９一二三四五六七八九十百千]+項)?");
+        return protectedRegex.Matches(sentence)
+            .Any(m => token.Index >= m.Index && (token.Index + token.Length) <= (m.Index + m.Length));
     }
 
     private static bool TryResolveAbsolute(string text, ArticleNode article, ParagraphNode paragraph, out string? replacement)

@@ -2,4 +2,5 @@ namespace Zuke.Core.Model;
 public sealed record LawMetadata(string LawTitle,string LawNum,string Era,int Year,int Num,string LawType,string Lang)
 {
     public string NumberStyle { get; init; } = "kanji";
+    public string ParagraphNumberStyle { get; init; } = "fullwidth";
 }

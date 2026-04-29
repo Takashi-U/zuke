@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using Zuke.Core.Model;
 using Zuke.Core.Numbering;
 
@@ -91,7 +92,7 @@ public sealed class LawtextRenderer
                 writer.WriteBlankLine();
             }
 
-            writer.WriteLine(LawtextLineKind.ArticleParagraph, supplementaryProvision.Title);
+            writer.WriteLine(LawtextLineKind.ArticleParagraph, $"      {supplementaryProvision.Title}");
             if (options.IncludeBlankLineBetweenBlocks)
             {
                 writer.WriteBlankLine();
@@ -154,7 +155,7 @@ public sealed class LawtextRenderer
         foreach (var paragraph in article.Paragraphs.Skip(1))
         {
             var paraNum = string.IsNullOrWhiteSpace(paragraph.ParagraphNumText)
-                ? ToFullWidth(paragraph.Number)
+                ? (options.ArabicNumbers ? paragraph.Number.ToString() : ToFullWidth(paragraph.Number))
                 : paragraph.ParagraphNumText;
             var sentence = paragraph.SentenceText;
             var line = string.IsNullOrWhiteSpace(sentence)
@@ -172,8 +173,13 @@ public sealed class LawtextRenderer
             var itemTitle = string.IsNullOrWhiteSpace(item.ItemTitle)
                 ? JapaneseNumberFormatter.ToItemTitle(item.Number, options.ArabicNumbers)
                 : item.ItemTitle;
+            var sentenceText = item.SentenceText;
+            if (!string.IsNullOrWhiteSpace(sentenceText))
+            {
+                sentenceText = Regex.Replace(sentenceText, $"^{Regex.Escape(itemTitle)}[　 ]+", string.Empty);
+            }
             writer.WriteLine(LawtextLineKind.Item,
-                $"{options.Layout.ItemIndent}{itemTitle}{options.Layout.Separator}{item.SentenceText}");
+                $"{options.Layout.ItemIndent}{itemTitle}{options.Layout.Separator}{sentenceText}");
 
             foreach (var subitem in item.Children)
             {
