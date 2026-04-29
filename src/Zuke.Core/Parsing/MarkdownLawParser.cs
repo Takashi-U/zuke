@@ -62,6 +62,7 @@ public sealed class MarkdownLawParser
             if (TryParseArticleHeading(line, currentSection is not null, out var headingText))
             {
                 articleNo++;
+                var headingStartsWithSupplement = headingText.TrimStart().StartsWith("附則", StringComparison.Ordinal);
                 var (caption, articleRefName) = ParseHeading(headingText, "条");
                 var articleStart = i + 1;
                 i++;
@@ -87,7 +88,11 @@ public sealed class MarkdownLawParser
                 {
                     articleNumber = parsedNumber;
                 }
-                var article = new ArticleNode(articleNo, articleRefName, caption, ArticleNumberFormatter.ToArticleTitle(articleNumber, false), new(filePath, articleStart, 1), paragraphs) { ArticleNumber = articleNumber };
+                var isSupplementaryProvision = headingStartsWithSupplement || string.Equals(caption, "附則", StringComparison.Ordinal);
+                var articleTitleText = isSupplementaryProvision
+                    ? "附則"
+                    : ArticleNumberFormatter.ToArticleTitle(articleNumber, false);
+                var article = new ArticleNode(articleNo, articleRefName, isSupplementaryProvision ? string.Empty : caption, articleTitleText, new(filePath, articleStart, 1), paragraphs) { ArticleNumber = articleNumber };
                 if (currentSection is not null) secArticles.Add(article);
                 else if (currentChapter is not null) chArticles.Add(article);
                 else direct.Add(article);
@@ -215,7 +220,7 @@ public sealed class MarkdownLawParser
                 continue;
             }
 
-            if (TryParseItem(trim, out var itemTitle, out var itemText, out var isSubitem1, out var itemRefName))
+            if (TryParseItem(line, out var itemTitle, out var itemText, out var isSubitem1, out var itemRefName))
             {
                 if (isSubitem1)
                 {
@@ -258,7 +263,7 @@ public sealed class MarkdownLawParser
                 return;
             }
 
-            var sentence = string.Join("", currentSentence);
+            var sentence = string.Join("\n", currentSentence);
             paragraphs.Add(new ParagraphNode(paragraphs.Count + 1, pendingParagraphRef, null, sentence, new(filePath, paraStartLine, 1), [.. currentItems]));
             currentSentence.Clear();
             currentItems.Clear();
