@@ -19,6 +19,18 @@ public class ArticleNumberTests
         Assert.Equal(expectedBase, n.BaseNumber);
     }
 
+
+    [Theory]
+    [InlineData("第9条の")]
+    [InlineData("第9条のA")]
+    [InlineData("第9条の0")]
+    [InlineData("第9条の二の")]
+    public void ParseArticleNumber_Invalid_ReturnsFalse(string text)
+    {
+        var ok = ArticleNumberParser.TryParseArticleNumber(text, out _);
+        Assert.False(ok);
+    }
+
     [Fact]
     public void Formatter_Works()
     {
