@@ -18,4 +18,35 @@ public class FrontMatterTests
         var r = TestHelpers.Compile(md);
         Assert.DoesNotContain(r.Diagnostics, d => d.Code == "LMD045");
     }
+
+    [Fact]
+    public void FrontMatterWithUtf8Bom_IsParsed()
+    {
+        var md = "\uFEFF" + """
+---
+lawTitle: 育児・介護休業等に関する規則
+---
+
+## 目的
+本文
+""";
+        var lawtext = TestHelpers.RenderLawtext(md);
+        Assert.StartsWith("育児・介護休業等に関する規則", lawtext);
+    }
+
+    [Fact]
+    public void MalformedFrontMatter_StillUsesLawTitleWhenPresent()
+    {
+        var md = """
+---
+lawTitle: 育児・介護休業等に関する規則
+num: [
+---
+
+## 目的
+本文
+""";
+        var lawtext = TestHelpers.RenderLawtext(md);
+        Assert.StartsWith("育児・介護休業等に関する規則", lawtext);
+    }
 }
