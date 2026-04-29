@@ -10,7 +10,7 @@ public sealed class MarkdownLawParser
     private static readonly Regex LabelRegex = new(@"\[(条|項|号|a|p|i):(?<name>[^\]]+)\]", RegexOptions.Compiled | RegexOptions.IgnoreCase);
     private static readonly Regex NumberedChapterRegex = new(@"^第[0-9０-９一二三四五六七八九十百千]+章\s*(?<title>.+)$", RegexOptions.Compiled);
     private static readonly Regex NumberedSectionRegex = new(@"^第[0-9０-９一二三四五六七八九十百千]+節\s*(?<title>.+)$", RegexOptions.Compiled);
-    private static readonly Regex NumberedArticleRegex = new(@"^第[0-9０-９一二三四五六七八九十百千]+条\s*(?<title>.+)$", RegexOptions.Compiled);
+    private static readonly Regex NumberedArticleRegex = new(@"^(?<num>第[0-9０-９一二三四五六七八九十百千]+条(の[0-9０-９一二三四五六七八九十百千]+)*)\s*(?<title>.+)$", RegexOptions.Compiled);
 
     public LawDocumentModel Parse(string markdown, string? filePath)
     {
@@ -81,7 +81,13 @@ public sealed class MarkdownLawParser
                     paragraphs.Add(new ParagraphNode(1, null, null, string.Empty, new(filePath, articleStart, 1), []));
                 }
 
-                var article = new ArticleNode(articleNo, articleRefName, caption, JapaneseNumberFormatter.ToArticle(articleNo, false), new(filePath, articleStart, 1), paragraphs);
+                var articleNumber = ArticleNumber.FromBase(articleNo);
+                var numbered = NumberedArticleRegex.Match(line.StartsWith("### ", StringComparison.Ordinal) ? line[4..].Trim() : line[3..].Trim());
+                if (numbered.Success && ArticleNumberFormatter.TryParseArticleNumber(numbered.Groups["num"].Value, out var parsedNumber))
+                {
+                    articleNumber = parsedNumber;
+                }
+                var article = new ArticleNode(articleNo, articleRefName, caption, ArticleNumberFormatter.ToArticleTitle(articleNumber, false), new(filePath, articleStart, 1), paragraphs) { ArticleNumber = articleNumber };
                 if (currentSection is not null) secArticles.Add(article);
                 else if (currentChapter is not null) chArticles.Add(article);
                 else direct.Add(article);
