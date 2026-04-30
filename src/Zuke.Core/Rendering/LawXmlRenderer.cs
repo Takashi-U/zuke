@@ -16,7 +16,7 @@ public sealed class LawXmlRenderer
             new XAttribute("LawType", model.Metadata.LawType),
             new XAttribute("Lang", model.Metadata.Lang),
             new XElement("LawNum", model.Metadata.LawNum),
-            new XElement("LawBody", new XElement("LawTitle", model.Metadata.LawTitle), new XElement("MainProvision", RenderMain(model, options))));
+            new XElement("LawBody", new XElement("LawTitle", model.Metadata.LawTitle), new XElement("MainProvision", RenderMain(model, options)), RenderSupplementaryProvisions(model)));
         return new XDocument(root);
     }
 
@@ -65,12 +65,70 @@ public sealed class LawXmlRenderer
 
     private static XElement RenderItem(ItemNode i, LawXmlRenderOptions options)
     {
-        var e = new XElement("Item", new XAttribute("Num", i.Number), new XElement("ItemTitle", JapaneseNumberFormatter.ToItemTitle(i.Number, options.ArabicNumbers)), new XElement("ItemSentence", new XElement("Sentence", new XAttribute("Num", 1), i.SentenceText)));
+        var itemTitle = string.IsNullOrWhiteSpace(i.ItemTitle)
+            ? JapaneseNumberFormatter.ToItemTitle(i.Number, options.ArabicNumbers)
+            : i.ItemTitle;
+        var itemSentence = NormalizeSentence(i.SentenceText, itemTitle);
+        var e = new XElement("Item", new XAttribute("Num", i.Number), new XElement("ItemTitle", itemTitle), new XElement("ItemSentence", new XElement("Sentence", new XAttribute("Num", 1), itemSentence)));
         foreach (var child in i.Children)
         {
-            e.Add(new XElement("Subitem1", new XAttribute("Num", child.Number), new XElement("Subitem1Title", child.ItemTitle), new XElement("Subitem1Sentence", new XElement("Sentence", new XAttribute("Num", 1), child.SentenceText))));
+            if (string.Equals(child.ItemTitle, "-", StringComparison.Ordinal))
+            {
+                var fallback = NormalizeSentence(child.SentenceText, "-");
+                if (!string.IsNullOrWhiteSpace(fallback))
+                {
+                    var sentenceElement = e.Element("ItemSentence")?.Element("Sentence");
+                    if (sentenceElement is not null)
+                    {
+                        var current = sentenceElement.Value;
+                        sentenceElement.Value = string.IsNullOrWhiteSpace(current) ? fallback : $"{current}\n{fallback}";
+                    }
+                }
+
+                continue;
+            }
+
+            var subitemSentence = NormalizeSentence(child.SentenceText, child.ItemTitle);
+            e.Add(new XElement("Subitem1", new XAttribute("Num", child.Number), new XElement("Subitem1Title", child.ItemTitle), new XElement("Subitem1Sentence", new XElement("Sentence", new XAttribute("Num", 1), subitemSentence))));
         }
 
         return e;
+    }
+
+    private static IEnumerable<XElement> RenderSupplementaryProvisions(LawDocumentModel model)
+    {
+        foreach (var supplementaryProvision in model.SupplementaryProvisions)
+        {
+            var supplElements = new List<object>
+            {
+                new XElement("SupplProvisionLabel", supplementaryProvision.Title)
+            };
+
+            if (supplementaryProvision.Lines.Count > 0)
+            {
+                supplElements.Add(
+                    new XElement("SupplProvisionSentence",
+                        supplementaryProvision.Lines.Select((line, idx) =>
+                            new XElement("Sentence", new XAttribute("Num", idx + 1), line))));
+            }
+
+            yield return new XElement("SupplProvision", supplElements.ToArray());
+        }
+    }
+
+    private static string NormalizeSentence(string? sentenceText, string title)
+    {
+        var sentence = sentenceText ?? string.Empty;
+        if (string.IsNullOrWhiteSpace(sentence) || string.IsNullOrWhiteSpace(title)) return sentence;
+        if (!sentence.StartsWith(title, StringComparison.Ordinal)) return sentence;
+        if (sentence.Length == title.Length) return string.Empty;
+
+        var next = sentence[title.Length];
+        if (next is ' ' or '　' or '\t')
+        {
+            return sentence[(title.Length + 1)..].TrimStart(' ', '　', '\t');
+        }
+
+        return sentence;
     }
 }
