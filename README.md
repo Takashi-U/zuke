@@ -97,6 +97,11 @@ zuke diff old.md new.md --view html -o diff.html
 
 `zuke convert input.md -o output.xml` は既定で XSD 検証を実行します。`--skip-validation` 指定時のみ省略されます。
 
+- zuke は `schemas/XMLSchemaForJapaneseLaw_v3.xsd` を同梱し、e-Gov 法令標準XMLスキーマ v3 で検証します。
+- 公式XSD取得元: `https://laws.e-gov.go.jp/file/XMLSchemaForJapaneseLaw_v3.xsd`
+- 取得日: 2026-04-30
+- 公式XSDに準拠しないXMLは `LMD044` としてエラーになります。
+
 ## Lawtext出力
 
 Lawtext出力後、未解決の参照マクロ・参照ラベル・絵文字（🍣）が残っているとエラー（LMD064 / LMD065）になります。
