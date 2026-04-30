@@ -292,7 +292,7 @@ public sealed class MarkdownLawParser
                 continue;
             }
 
-            currentSentence.Add(trim);
+            currentSentence.Add(line);
         }
 
         FlushParagraph(blockLines.Count > 0 ? blockLines[^1].sourceLine : 1);
