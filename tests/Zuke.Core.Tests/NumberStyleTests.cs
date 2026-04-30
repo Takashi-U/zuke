@@ -54,6 +54,6 @@ lang: ja
         var xmlText = xml.ToString();
         Assert.Contains("<ArticleTitle>第1条</ArticleTitle>", xmlText);
         Assert.Contains("<ArticleTitle>第2条</ArticleTitle>", xmlText);
-        Assert.Contains("<ItemTitle>1</ItemTitle>", xmlText);
+        Assert.Contains("<ItemTitle>一</ItemTitle>", xmlText);
     }
 }
