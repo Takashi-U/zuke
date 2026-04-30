@@ -33,19 +33,19 @@ public static class FrontMatterParser
         {
             var deserializer = new DeserializerBuilder().WithNamingConvention(CamelCaseNamingConvention.Instance).Build();
             var map = deserializer.Deserialize<Dictionary<string, object>>(yaml) ?? new();
-            var missing = RequiredKeys.Where(k => !map.ContainsKey(k) || string.IsNullOrWhiteSpace(map[k]?.ToString())).ToList();
+            var missing = RequiredKeys.Where(k => string.IsNullOrWhiteSpace(GetValue(map, k))).ToList();
 
             var metadata = new LawMetadata(
-                map.TryGetValue("lawTitle", out var a) ? a.ToString() ?? "" : "",
-                map.TryGetValue("lawNum", out var b) ? b.ToString() ?? "" : "",
-                map.TryGetValue("era", out var c) ? c.ToString() ?? "" : "",
-                map.TryGetValue("year", out var d) ? Convert.ToInt32(d) : 1,
-                map.TryGetValue("num", out var e) ? Convert.ToInt32(e) : 1,
-                map.TryGetValue("lawType", out var f) ? f.ToString() ?? "" : "",
-                map.TryGetValue("lang", out var g) ? g.ToString() ?? "" : "")
+                GetValue(map, "lawTitle") ?? string.Empty,
+                GetValue(map, "lawNum") ?? string.Empty,
+                GetValue(map, "era") ?? string.Empty,
+                int.TryParse(GetValue(map, "year"), out var year) ? year : 1,
+                int.TryParse(GetValue(map, "num"), out var num) ? num : 1,
+                GetValue(map, "lawType") ?? string.Empty,
+                GetValue(map, "lang") ?? string.Empty)
             {
-                NumberStyle = map.TryGetValue("numberStyle", out var h) ? h?.ToString() ?? "kanji" : "kanji"
-                ,ParagraphNumberStyle = map.TryGetValue("paragraphNumberStyle", out var pns) ? pns?.ToString() ?? "fullwidth" : "fullwidth"
+                NumberStyle = NormalizeNumberStyle(GetValue(map, "numberStyle")),
+                ParagraphNumberStyle = NormalizeParagraphNumberStyle(GetValue(map, "paragraphNumberStyle"))
             };
 
             return new FrontMatterParseResult(metadata, bodyNormalized, true, missing);
@@ -72,8 +72,8 @@ public static class FrontMatterParser
 
         return new LawMetadata(title, lawNum, era, year, num, lawType, lang)
         {
-            NumberStyle = TryExtractScalar(yaml, "numberStyle") ?? fallback.NumberStyle,
-            ParagraphNumberStyle = TryExtractScalar(yaml, "paragraphNumberStyle") ?? fallback.ParagraphNumberStyle
+            NumberStyle = NormalizeNumberStyle(TryExtractScalar(yaml, "numberStyle") ?? fallback.NumberStyle),
+            ParagraphNumberStyle = NormalizeParagraphNumberStyle(TryExtractScalar(yaml, "paragraphNumberStyle") ?? fallback.ParagraphNumberStyle)
         };
     }
 
@@ -88,7 +88,7 @@ public static class FrontMatterParser
             if (separatorIndex <= 0) continue;
 
             var left = line[..separatorIndex].Trim();
-            if (!left.Equals(key, StringComparison.Ordinal)) continue;
+            if (!left.Equals(key, StringComparison.OrdinalIgnoreCase)) continue;
 
             var right = line[(separatorIndex + 1)..].Trim();
             if (right.Length >= 2)
@@ -105,6 +105,25 @@ public static class FrontMatterParser
         return null;
     }
 
+
+    private static string? GetValue(Dictionary<string, object> map, string key)
+    {
+        foreach (var entry in map)
+        {
+            if (entry.Key.Equals(key, StringComparison.OrdinalIgnoreCase))
+            {
+                return entry.Value?.ToString();
+            }
+        }
+
+        return null;
+    }
+
+    private static string NormalizeParagraphNumberStyle(string? value)
+        => value != null && value.Equals("ascii", StringComparison.OrdinalIgnoreCase) ? "ascii" : "fullwidth";
+
+    private static string NormalizeNumberStyle(string? value)
+        => value != null && value.Equals("arabic", StringComparison.OrdinalIgnoreCase) ? "arabic" : "kanji";
     public static IReadOnlyList<DiagnosticMessage> ValidateRequired(FrontMatterParseResult result, string? filePath)
     {
         if (!result.HasFrontMatter)
