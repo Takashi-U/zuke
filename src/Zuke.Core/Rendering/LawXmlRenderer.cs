@@ -61,28 +61,31 @@ public sealed class LawXmlRenderer
     {
         var sentence = string.IsNullOrWhiteSpace(p.SentenceText) ? string.Empty : p.SentenceText;
         var paragraph = new XElement("Paragraph", new XAttribute("Num", p.Number), string.IsNullOrEmpty(p.ParagraphNumText) ? new XElement("ParagraphNum") : new XElement("ParagraphNum", p.ParagraphNumText), new XElement("ParagraphSentence", new XElement("Sentence", new XAttribute("Num", 1), sentence)));
+        var needsParagraphScopedRenumbering = p.Items.Any(i => i.IsRawBullet);
+        var itemNum = 1;
         foreach (var item in p.Items)
         {
+            var outputNum = needsParagraphScopedRenumbering ? itemNum++ : item.Number;
             if (item.IsRawBullet)
             {
-                paragraph.Add(RenderRawBulletItem(item, options));
+                paragraph.Add(RenderRawBulletAsUntitledItem(item, outputNum));
             }
             else
             {
-                paragraph.Add(RenderItem(item, options));
+                paragraph.Add(RenderItem(item, options, outputNum));
             }
         }
 
         return paragraph;
     }
 
-    private static XElement RenderItem(ItemNode i, LawXmlRenderOptions options)
+    private static XElement RenderItem(ItemNode i, LawXmlRenderOptions options, int? numOverride = null)
     {
         var itemTitle = string.IsNullOrWhiteSpace(i.ItemTitle)
             ? JapaneseNumberFormatter.ToItemTitle(i.Number, options.ArabicNumbers)
             : i.ItemTitle;
         var itemSentence = NormalizeSentence(i.SentenceText, itemTitle);
-        var e = new XElement("Item", new XAttribute("Num", i.Number), new XElement("ItemTitle", itemTitle), new XElement("ItemSentence", new XElement("Sentence", new XAttribute("Num", 1), itemSentence)));
+        var e = new XElement("Item", new XAttribute("Num", numOverride ?? i.Number), new XElement("ItemTitle", itemTitle), new XElement("ItemSentence", new XElement("Sentence", new XAttribute("Num", 1), itemSentence)));
         foreach (var child in i.Children)
         {
             if (child.IsRawBullet)
@@ -91,7 +94,7 @@ public sealed class LawXmlRenderer
                 continue;
             }
 
-                        var subitemSentence = NormalizeSentence(child.SentenceText, child.ItemTitle);
+            var subitemSentence = NormalizeSentence(child.SentenceText, child.ItemTitle);
             e.Add(new XElement("Subitem1", new XAttribute("Num", child.Number), new XElement("Subitem1Title", child.ItemTitle), new XElement("Subitem1Sentence", new XElement("Sentence", new XAttribute("Num", 1), subitemSentence))));
         }
 
@@ -105,16 +108,12 @@ public sealed class LawXmlRenderer
                 new XElement("Sentence", new XAttribute("Num", 1), rawListItem.SentenceText)));
     }
 
-    private static XElement RenderRawBulletItem(ItemNode i, LawXmlRenderOptions options)
+    private static XElement RenderRawBulletAsUntitledItem(ItemNode rawListItem, int num)
     {
-        var itemTitle = string.IsNullOrWhiteSpace(i.ItemTitle)
-            ? JapaneseNumberFormatter.ToItemTitle(i.Number, options.ArabicNumbers)
-            : i.ItemTitle;
         return new XElement("Item",
-            new XAttribute("Num", i.Number),
-            new XElement("ItemTitle", itemTitle),
-            new XElement("ItemSentence", new XElement("Sentence", new XAttribute("Num", 1))),
-            RenderList(i));
+            new XAttribute("Num", num),
+            new XElement("ItemSentence",
+                new XElement("Sentence", new XAttribute("Num", 1), rawListItem.SentenceText)));
     }
 
     private static IEnumerable<XElement> RenderSupplementaryProvisions(LawDocumentModel model)

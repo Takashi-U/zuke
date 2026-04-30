@@ -117,10 +117,12 @@ lang: ja
     }
 
     [Fact]
-    public void IkujiKaigoLawtext_GeneratesValidXml_WithOfficialXsd()
+    public void IkujiKaigoLawtextImport_PassesOfficialXsdRoundTripCheck()
     {
         var source = File.ReadAllText(Path.Combine(TestHelpers.RepoRoot, "samples", "ikuji_kaigo_kyugyo_kitei_lawtext.txt"));
         var imported = new LawtextImportService().Import(source, "samples/ikuji_kaigo_kyugyo_kitei_lawtext.txt", new());
+        Assert.False(imported.HasErrors);
+        Assert.DoesNotContain(imported.Diagnostics, d => d.Code == "LMD044");
 
         var compiled = new LawMarkdownCompiler().Compile(imported.Markdown, "samples/ikuji_kaigo_kyugyo_kitei_lawtext.imported.md", new CompileOptions(false, true));
         Assert.False(compiled.HasErrors);
@@ -133,22 +135,68 @@ lang: ja
     }
 
     [Fact]
-    public void RawBulletList_GeneratesValidXml_WithOfficialXsd()
+    public void ParagraphRawBullet_GeneratesValidXml_WithOfficialXsd()
     {
-        const string lawtext = """
-箇条書きテスト規程
+        const string markdown = """
+---
+lawTitle: テスト規則
+lawNum: テスト第1号
+era: Reiwa
+year: 6
+num: 1
+lawType: Misc
+lang: ja
+---
+# テスト規則
 
-第1条　次の事項を定める。
-  - 勤務区分A
-  - 勤務区分B
+## 第一条
+本文。
+  - 通常勤務=...
+  - 時差出勤A=...
 """;
-        var imported = new LawtextImportService().Import(lawtext, "raw-bullet.law.txt", new());
-        var compiled = new LawMarkdownCompiler().Compile(imported.Markdown, "raw-bullet.imported.md", new CompileOptions(false, true));
+        var compiled = new LawMarkdownCompiler().Compile(markdown, "paragraph-raw-bullet.md", new CompileOptions(false, true));
         Assert.False(compiled.HasErrors);
 
         var xml = new LawXmlRenderer().Render(compiled.Document!.Document);
         var xmlText = xml.ToString(SaveOptions.DisableFormatting);
-        Assert.Contains("<List>", xmlText);
+        Assert.DoesNotContain("<Paragraph Num=\"1\"><ParagraphNum /><ParagraphSentence><Sentence Num=\"1\">本文。</Sentence></ParagraphSentence><List>", xmlText);
+        Assert.Contains("<Item Num=\"1\"><ItemSentence><Sentence Num=\"1\">通常勤務=...</Sentence></ItemSentence></Item>", xmlText);
+        Assert.Contains("<Item Num=\"2\"><ItemSentence><Sentence Num=\"1\">時差出勤A=...</Sentence></ItemSentence></Item>", xmlText);
+        Assert.DoesNotContain("<Subitem1Title>-</Subitem1Title>", xmlText);
+
+        var xsd = Path.Combine(TestHelpers.RepoRoot, "schemas", "XMLSchemaForJapaneseLaw_v3.xsd");
+        var diags = new LawXmlValidator().Validate(xml, xsd);
+        Assert.DoesNotContain(diags, d => d.Code == "LMD044");
+    }
+
+    [Fact]
+    public void ItemRawBullet_GeneratesValidXml_WithOfficialXsd()
+    {
+        const string markdown = """
+---
+lawTitle: テスト規則
+lawNum: テスト第1号
+era: Reiwa
+year: 6
+num: 1
+lawType: Misc
+lang: ja
+---
+# テスト規則
+
+## 第一条
+本文。
+  一　対象従業員は...
+    - 通常勤務=...
+    - 時差出勤A=...
+""";
+        var compiled = new LawMarkdownCompiler().Compile(markdown, "item-raw-bullet.md", new CompileOptions(false, true));
+        Assert.False(compiled.HasErrors);
+
+        var xml = new LawXmlRenderer().Render(compiled.Document!.Document);
+        var xmlText = xml.ToString(SaveOptions.DisableFormatting);
+        Assert.Contains("<Item Num=\"1\">", xmlText);
+        Assert.DoesNotContain("<Paragraph Num=\"1\"><ParagraphNum /><ParagraphSentence><Sentence Num=\"1\">本文。</Sentence></ParagraphSentence><List>", xmlText);
         Assert.DoesNotContain("<Subitem1Title>-</Subitem1Title>", xmlText);
 
         var xsd = Path.Combine(TestHelpers.RepoRoot, "schemas", "XMLSchemaForJapaneseLaw_v3.xsd");
