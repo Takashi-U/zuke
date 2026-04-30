@@ -14,6 +14,7 @@ public sealed class LawtextParser
     private static readonly Regex ParagraphRegex = new(@"^(?<n>[0-9０-９]+)\s*[　 ]*(?<s>.*)$", RegexOptions.Compiled);
     private static readonly Regex ItemRegex = new(@"^\s*(?<n>[一二三四五六七八九十]+)\s*[　 ](?<s>.+)$", RegexOptions.Compiled);
     private static readonly Regex Subitem1Regex = new(@"^\s*(?<n>[イロハニホヘトチリヌルヲワカヨタレソツネナラムウヰノオクヤマケフコエテ])\s*[　 ](?<s>.+)$", RegexOptions.Compiled);
+    private static readonly Regex RawBulletRegex = new(@"^(?<indent>\s*)-\s*(?<s>.+)$", RegexOptions.Compiled);
     private static readonly Regex SupplementaryProvisionRegex = new(@"^\s*附則\s*$", RegexOptions.Compiled);
 
     public (LawDocumentModel Model, IReadOnlyList<DiagnosticMessage> Diagnostics) Parse(string lawtext, string? filePath)
@@ -141,7 +142,8 @@ public sealed class LawtextParser
             var item = ItemRegex.Match(trim);
             if (item.Success && currentParagraph is not null)
             {
-                items.Add(new(ParseNumber(item.Groups["n"].Value), null, item.Groups["n"].Value, item.Groups["s"].Value.Trim(), new(filePath, i + 1, 1), []));
+                var indent = raw[..(raw.Length - raw.TrimStart().Length)];
+                items.Add(new(ParseNumber(item.Groups["n"].Value), null, item.Groups["n"].Value, item.Groups["s"].Value.Trim(), new(filePath, i + 1, 1), [], indent));
                 continue;
             }
 
@@ -150,7 +152,18 @@ public sealed class LawtextParser
             {
                 var parent = items[^1];
                 var children = parent.Children.ToList();
-                children.Add(new(children.Count + 1, null, subitem.Groups["n"].Value, subitem.Groups["s"].Value.Trim(), new(filePath, i + 1, 1), []));
+                var indent = raw[..(raw.Length - raw.TrimStart().Length)];
+                children.Add(new(children.Count + 1, null, subitem.Groups["n"].Value, subitem.Groups["s"].Value.Trim(), new(filePath, i + 1, 1), [], indent));
+                items[^1] = parent with { Children = children };
+                continue;
+            }
+
+            var rawBullet = RawBulletRegex.Match(raw);
+            if (rawBullet.Success && items.Count > 0)
+            {
+                var parent = items[^1];
+                var children = parent.Children.ToList();
+                children.Add(new(children.Count + 1, null, "-", rawBullet.Groups["s"].Value.Trim(), new(filePath, i + 1, 1), [], rawBullet.Groups["indent"].Value, true));
                 items[^1] = parent with { Children = children };
                 continue;
             }

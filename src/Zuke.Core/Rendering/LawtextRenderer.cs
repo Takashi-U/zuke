@@ -179,12 +179,17 @@ public sealed class LawtextRenderer
                 sentenceText = Regex.Replace(sentenceText, $"^{Regex.Escape(itemTitle)}[　 ]+", string.Empty);
             }
             writer.WriteLine(LawtextLineKind.Item,
-                $"{options.Layout.ItemIndent}{itemTitle}{options.Layout.Separator}{sentenceText}");
+                $"{(item.LeadingWhitespace ?? options.Layout.ItemIndent)}{itemTitle}{options.Layout.Separator}{sentenceText}");
 
             foreach (var subitem in item.Children)
             {
+                if (subitem.IsRawBullet)
+                {
+                    writer.WriteLine(LawtextLineKind.Subitem1, $"{(subitem.LeadingWhitespace ?? options.Layout.Subitem1Indent)}- {subitem.SentenceText}");
+                    continue;
+                }
                 writer.WriteLine(LawtextLineKind.Subitem1,
-                    $"{options.Layout.Subitem1Indent}{subitem.ItemTitle}{options.Layout.Separator}{subitem.SentenceText}");
+                    $"{(subitem.LeadingWhitespace ?? options.Layout.Subitem1Indent)}{subitem.ItemTitle}{options.Layout.Separator}{subitem.SentenceText}");
             }
         }
     }

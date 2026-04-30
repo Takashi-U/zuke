@@ -76,7 +76,7 @@ lang: ja
         var diags = new List<DiagnosticMessage>();
         var r1 = new LawtextReferenceResolver().Resolve("前条", a92, a92.Paragraphs[0], null, table, diags, new("x",2,1), new(), []);
         var r2 = new LawtextReferenceResolver().Resolve("前条", a10, a10.Paragraphs[0], null, table, diags, new("x",3,1), new(), []);
-        Assert.Equal("{{参照:article-9|相対}}", r1);
-        Assert.Equal("{{参照:article-9-2|相対}}", r2);
+        Assert.Equal("前条", r1);
+        Assert.Equal("前条", r2);
     }
 }

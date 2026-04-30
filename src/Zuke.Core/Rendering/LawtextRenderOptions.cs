@@ -20,8 +20,8 @@ public sealed record LawtextLayoutOptions
     public string ChapterIndent { get; init; } = "      ";
     public string SectionIndent { get; init; } = "        ";
     public string ArticleCaptionIndent { get; init; } = "  ";
-    public string ItemIndent { get; init; } = "";
-    public string Subitem1Indent { get; init; } = "  ";
+    public string ItemIndent { get; init; } = "  ";
+    public string Subitem1Indent { get; init; } = "    ";
     public string Separator { get; init; } = "　";
 }
 

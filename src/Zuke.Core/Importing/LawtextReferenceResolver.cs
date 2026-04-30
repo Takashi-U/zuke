@@ -19,18 +19,14 @@ public sealed class LawtextReferenceResolver
             if (IsProtectedReferenceToken(sentence, token)) continue;
             if (token.Text is "及び" or "又は") { AddDiag("LMD094", "複数条項参照はMVP未対応です。"); continue; }
             if (token.Text == "から") { AddDiag("LMD095", "範囲参照はMVP未対応です。"); continue; }
-            if (token.Text is "次条" or "次項" or "次号" or "同条" or "同項" or "同号") { AddDiag("LMD092", "Lawtextの条項参照を解決できません。"); continue; }
+            if (token.Text is "前条" or "前項" or "前号" or "次条" or "次項" or "次号" or "同条" or "同項" or "同号")
+            {
+                AddDiag("LMD091", "Lawtextの相対参照を解決できません。");
+                continue;
+            }
 
             string? replacement = null;
-            if (token.Text == "前条")
-            {
-                var prev = ResolvePrevArticleRef(article, table);
-                replacement = prev is null ? null : $"{{{{参照:{prev}|相対}}}}";
-                if (replacement is null) AddDiag("LMD091", "Lawtextの相対参照を解決できません。");
-            }
-            else if (token.Text == "前項") { replacement = paragraph.Number > 1 ? $"{{{{参照:{ArticleNumberFormatter.ToReferenceName(article.ArticleNumber)}-p{paragraph.Number - 1}|相対}}}}" : null; if (replacement is null) AddDiag("LMD091", "Lawtextの相対参照を解決できません。"); }
-            else if (token.Text == "前号") { replacement = item is not null && item.Number > 1 ? $"{{{{参照:{ArticleNumberFormatter.ToReferenceName(article.ArticleNumber)}-p{paragraph.Number}-i{item.Number - 1}|相対}}}}" : null; if (replacement is null) AddDiag("LMD091", "Lawtextの相対参照を解決できません。"); }
-            else if (TryResolveAbsolute(token.Text, article, paragraph, out var absolute)) replacement = absolute;
+            if (TryResolveAbsolute(token.Text, out var absolute)) replacement = absolute;
 
             if (replacement is null) continue;
             var target = replacement.Replace("{{参照:", string.Empty, StringComparison.Ordinal).Replace("}}", string.Empty, StringComparison.Ordinal).Split('|')[0];
@@ -51,7 +47,7 @@ public sealed class LawtextReferenceResolver
             .Any(m => token.Index >= m.Index && (token.Index + token.Length) <= (m.Index + m.Length));
     }
 
-    private static bool TryResolveAbsolute(string text, ArticleNode article, ParagraphNode paragraph, out string? replacement)
+    private static bool TryResolveAbsolute(string text, out string? replacement)
     {
         replacement = null;
         var itemMatch = Regex.Match(text, @"第?[0-9０-９一二三四五六七八九十百千]+号$");
@@ -65,31 +61,11 @@ public sealed class LawtextReferenceResolver
             p = LawtextParser.ParseNumber(ParagraphRegex.Match(paraMatch.Value).Groups["p"].Value);
             if (itemMatch.Success) i = LawtextParser.ParseNumber(ItemRegex.Match(itemMatch.Value).Groups["i"].Value);
         }
-        if (!ArticleNumberFormatter.TryParseArticleNumber(articlePart, out var an))
-        {
-            if (ParagraphRegex.IsMatch(text))
-            {
-                p = LawtextParser.ParseNumber(ParagraphRegex.Match(text).Groups["p"].Value);
-                replacement = $"{{{{参照:{ArticleNumberFormatter.ToReferenceName(article.ArticleNumber)}-p{p}}}}}";
-                return true;
-            }
-            if (ItemRegex.IsMatch(text))
-            {
-                i = LawtextParser.ParseNumber(ItemRegex.Match(text).Groups["i"].Value);
-                replacement = $"{{{{参照:{ArticleNumberFormatter.ToReferenceName(article.ArticleNumber)}-p{paragraph.Number}-i{i}}}}}";
-                return true;
-            }
-            return false;
-        }
+        if (!ArticleNumberFormatter.TryParseArticleNumber(articlePart, out var an)) return false;
 
         var aRef = ArticleNumberFormatter.ToReferenceName(an);
         replacement = p == 0 ? $"{{{{参照:{aRef}|完全}}}}" : i == 0 ? $"{{{{参照:{aRef}-p{p}|完全}}}}" : $"{{{{参照:{aRef}-p{p}-i{i}|完全}}}}";
         return true;
     }
 
-    private static string? ResolvePrevArticleRef(ArticleNode currentArticle, IReadOnlyDictionary<string, ReferenceDefinition> table)
-    {
-        if (string.IsNullOrWhiteSpace(currentArticle.ReferenceName) || !ReferenceNameNormalizer.TryNormalize(currentArticle.ReferenceName, out var key) || !table.TryGetValue(key, out var current)) return null;
-        return table.Values.FirstOrDefault(x => x.Kind == LawElementKind.Article && x.DocumentArticleIndex == current.DocumentArticleIndex - 1)?.NormalizedName;
-    }
 }
