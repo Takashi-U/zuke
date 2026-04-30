@@ -87,6 +87,13 @@ public sealed class ExtendedMarkdownRenderer
             mapping.Add(CreateMapping("Item", item.Location?.Line, $"{BuildParagraphNumber(article, paragraph)}第{item.Number}号", item.ReferenceName, null));
             foreach (var subitem in item.Children)
             {
+                if (subitem.IsRawBullet)
+                {
+                    var indent = string.IsNullOrEmpty(subitem.LeadingWhitespace) ? "    " : subitem.LeadingWhitespace;
+                    Append($"{indent}- {subitem.SentenceText}");
+                    mapping.Add(CreateMapping("Subitem1", subitem.Location?.Line, $"{BuildParagraphNumber(article, paragraph)}第{item.Number}号-", subitem.ReferenceName, null));
+                    continue;
+                }
                 Append($"  {subitem.ItemTitle}　{subitem.SentenceText}");
                 mapping.Add(CreateMapping("Subitem1", subitem.Location?.Line, $"{BuildParagraphNumber(article, paragraph)}第{item.Number}号{subitem.ItemTitle}", subitem.ReferenceName, null));
             }

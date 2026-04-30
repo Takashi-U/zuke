@@ -245,6 +245,24 @@ public sealed class MarkdownLawParser
                 continue;
             }
 
+            var rawBulletChild = Regex.Match(line, @"^(?<indent>\s{2,})-\s*(?<text>.+)$");
+            if (rawBulletChild.Success && currentItems.Count > 0)
+            {
+                var parent = currentItems[^1];
+                var children = parent.Children.ToList();
+                children.Add(new ItemNode(
+                    children.Count + 1,
+                    null,
+                    "-",
+                    rawBulletChild.Groups["text"].Value.Trim(),
+                    new(filePath, lineNo, 1),
+                    [],
+                    rawBulletChild.Groups["indent"].Value,
+                    true));
+                currentItems[^1] = parent with { Children = children };
+                continue;
+            }
+
             if (TryParseItem(line, out var itemTitle, out var itemText, out var isSubitem1, out var itemRefName))
             {
                 if (isSubitem1)

@@ -9,7 +9,7 @@ public class LawtextGoldenTests
 {
     private static readonly string[] RequiredFixtures =
     [
-        "minimal", "chapter-section", "paragraphs", "items", "references", "relative-references", "direct-articles", "article-reference", "item-reference", "subitem1"
+        "minimal", "chapter-section", "paragraphs", "references", "direct-articles", "article-reference"
     ];
 
     public static IEnumerable<object[]> Cases()

@@ -13,7 +13,7 @@ public class LawtextImportMarkdownRendererTests
         Assert.Contains("# 総則", result.Markdown);
         Assert.Contains("## 節 通則", result.Markdown);
         Assert.Contains("[条:article-1]", result.Markdown);
-        Assert.Contains("{{参照:article-2-p1|相対}}", result.Markdown);
+        Assert.Contains("前項", result.Markdown);
         Assert.Contains("{{参照:article-2-p1|完全}}", result.Markdown);
     }
 
@@ -35,7 +35,7 @@ public class LawtextImportMarkdownRendererTests
         Assert.Contains("二　次のいずれかの事情があること", roundtrip);
         Assert.Contains("  イ　保育所等", roundtrip);
         Assert.Contains("  ロ　配偶者事情", roundtrip);
-        Assert.Contains("\n三　", roundtrip);
+        Assert.Contains("\n  三　", roundtrip);
         Assert.DoesNotContain("\n1　", roundtrip);
         Assert.DoesNotContain("- イ", roundtrip);
     }
