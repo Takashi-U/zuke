@@ -107,9 +107,12 @@ public sealed class LawXmlRenderer
             if (supplementaryProvision.Lines.Count > 0)
             {
                 supplElements.Add(
-                    new XElement("SupplProvisionSentence",
-                        supplementaryProvision.Lines.Select((line, idx) =>
-                            new XElement("Sentence", new XAttribute("Num", idx + 1), line))));
+                    new XElement("Paragraph",
+                        new XAttribute("Num", 1),
+                        new XElement("ParagraphNum"),
+                        new XElement("ParagraphSentence",
+                            supplementaryProvision.Lines.Select((line, idx) =>
+                                new XElement("Sentence", new XAttribute("Num", idx + 1), line)))));
             }
 
             yield return new XElement("SupplProvision", supplElements.ToArray());
