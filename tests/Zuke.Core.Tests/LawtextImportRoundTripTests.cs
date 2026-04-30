@@ -42,6 +42,16 @@ public class LawtextImportRoundTripTests
     }
 
     [Fact]
+    public void RoundTrip_Preserves_ParagraphLevelRawBulletIndent()
+    {
+        var input = "テスト規程\n\n第1条　本文。\n  - 通常勤務=...\n  - 時差出勤A=...\n";
+        var imported = new Zuke.Core.Importing.LawtextImportService().Import(input, "sample", new());
+        var roundTrip = TestHelpers.RenderLawtext(imported.Markdown);
+        Assert.Contains("\n  - 通常勤務=...\n", roundTrip);
+        Assert.Contains("\n  - 時差出勤A=...\n", roundTrip);
+    }
+
+    [Fact]
     public void RoundTrip_DoesNotExpandShortReferences()
     {
         var input = "テスト規程\n\n第1条　第1号及び第2号の措置を実施する。\n  一　第一号\n  二　第二号\n";
