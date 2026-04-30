@@ -65,7 +65,7 @@ public sealed class LawXmlRenderer
         {
             if (item.IsRawBullet)
             {
-                paragraph.Add(RenderList(item));
+                paragraph.Add(RenderRawBulletItem(item, options));
             }
             else
             {
@@ -103,6 +103,18 @@ public sealed class LawXmlRenderer
         return new XElement("List",
             new XElement("ListSentence",
                 new XElement("Sentence", new XAttribute("Num", 1), rawListItem.SentenceText)));
+    }
+
+    private static XElement RenderRawBulletItem(ItemNode i, LawXmlRenderOptions options)
+    {
+        var itemTitle = string.IsNullOrWhiteSpace(i.ItemTitle)
+            ? JapaneseNumberFormatter.ToItemTitle(i.Number, options.ArabicNumbers)
+            : i.ItemTitle;
+        return new XElement("Item",
+            new XAttribute("Num", i.Number),
+            new XElement("ItemTitle", itemTitle),
+            new XElement("ItemSentence", new XElement("Sentence", new XAttribute("Num", 1))),
+            RenderList(i));
     }
 
     private static IEnumerable<XElement> RenderSupplementaryProvisions(LawDocumentModel model)
