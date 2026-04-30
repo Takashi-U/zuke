@@ -1,4 +1,6 @@
 using System.Xml.Linq;
+using Zuke.Core.Compilation;
+using Zuke.Core.Importing;
 using Xunit;
 using Zuke.Core.Rendering;
 using Zuke.Core.Validation;
@@ -7,6 +9,20 @@ namespace Zuke.Core.Tests;
 
 public class XsdValidationTests
 {
+    [Fact]
+    public void CurrentRealXsdIsStrict()
+    {
+        var xsdPath = Path.Combine(TestHelpers.RepoRoot, "schemas", "XMLSchemaForJapaneseLaw_v3.xsd");
+        var xsdText = File.ReadAllText(xsdPath);
+
+        Assert.DoesNotContain("<xs:element name=\"LawBody\" type=\"xs:anyType\"", xsdText);
+        Assert.Contains("<xs:element name=\"Article\"", xsdText);
+        Assert.Contains("<xs:element name=\"Paragraph\"", xsdText);
+        Assert.Contains("<xs:element name=\"Item\"", xsdText);
+        Assert.Contains("<xs:element name=\"SupplProvision\"", xsdText);
+        Assert.Contains("<xs:element name=\"List\"", xsdText);
+    }
+
     [Fact]
     public void WorkRules_GeneratesValidXml()
     {
@@ -95,6 +111,46 @@ lang: ja
 
         var xml = new LawXmlRenderer().Render(result.Document!.Document);
         Assert.DoesNotContain("<SupplProvisionSentence>", xml.ToString(SaveOptions.DisableFormatting));
+        var xsd = Path.Combine(TestHelpers.RepoRoot, "schemas", "XMLSchemaForJapaneseLaw_v3.xsd");
+        var diags = new LawXmlValidator().Validate(xml, xsd);
+        Assert.DoesNotContain(diags, d => d.Code == "LMD044");
+    }
+
+    [Fact]
+    public void IkujiKaigoLawtext_GeneratesValidXml_WithOfficialXsd()
+    {
+        var source = File.ReadAllText(Path.Combine(TestHelpers.RepoRoot, "samples", "ikuji_kaigo_kyugyo_kitei_lawtext.txt"));
+        var imported = new LawtextImportService().Import(source, "samples/ikuji_kaigo_kyugyo_kitei_lawtext.txt", new());
+
+        var compiled = new LawMarkdownCompiler().Compile(imported.Markdown, "samples/ikuji_kaigo_kyugyo_kitei_lawtext.imported.md", new CompileOptions(false, true));
+        Assert.False(compiled.HasErrors);
+
+        var xml = new LawXmlRenderer().Render(compiled.Document!.Document);
+        var xsd = Path.Combine(TestHelpers.RepoRoot, "schemas", "XMLSchemaForJapaneseLaw_v3.xsd");
+        var diags = new LawXmlValidator().Validate(xml, xsd);
+
+        Assert.DoesNotContain(diags, d => d.Code == "LMD044");
+    }
+
+    [Fact]
+    public void RawBulletList_GeneratesValidXml_WithOfficialXsd()
+    {
+        const string lawtext = """
+箇条書きテスト規程
+
+第1条　次の事項を定める。
+  - 勤務区分A
+  - 勤務区分B
+""";
+        var imported = new LawtextImportService().Import(lawtext, "raw-bullet.law.txt", new());
+        var compiled = new LawMarkdownCompiler().Compile(imported.Markdown, "raw-bullet.imported.md", new CompileOptions(false, true));
+        Assert.False(compiled.HasErrors);
+
+        var xml = new LawXmlRenderer().Render(compiled.Document!.Document);
+        var xmlText = xml.ToString(SaveOptions.DisableFormatting);
+        Assert.Contains("<List>", xmlText);
+        Assert.DoesNotContain("<Subitem1Title>-</Subitem1Title>", xmlText);
+
         var xsd = Path.Combine(TestHelpers.RepoRoot, "schemas", "XMLSchemaForJapaneseLaw_v3.xsd");
         var diags = new LawXmlValidator().Validate(xml, xsd);
         Assert.DoesNotContain(diags, d => d.Code == "LMD044");
