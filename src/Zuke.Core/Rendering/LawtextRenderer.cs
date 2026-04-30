@@ -170,6 +170,13 @@ public sealed class LawtextRenderer
     {
         foreach (var item in items)
         {
+            if (item.IsRawBullet)
+            {
+                var marker = string.IsNullOrWhiteSpace(item.ItemTitle) ? "-" : item.ItemTitle;
+                writer.WriteLine(LawtextLineKind.Item, $"{(item.LeadingWhitespace ?? options.Layout.ItemIndent)}{marker} {item.SentenceText}");
+                continue;
+            }
+
             var itemTitle = string.IsNullOrWhiteSpace(item.ItemTitle)
                 ? JapaneseNumberFormatter.ToItemTitle(item.Number, options.ArabicNumbers)
                 : item.ItemTitle;
@@ -185,7 +192,8 @@ public sealed class LawtextRenderer
             {
                 if (subitem.IsRawBullet)
                 {
-                    writer.WriteLine(LawtextLineKind.Subitem1, $"{(subitem.LeadingWhitespace ?? options.Layout.Subitem1Indent)}- {subitem.SentenceText}");
+                    var marker = string.IsNullOrWhiteSpace(subitem.ItemTitle) ? "-" : subitem.ItemTitle;
+                    writer.WriteLine(LawtextLineKind.Subitem1, $"{(subitem.LeadingWhitespace ?? options.Layout.Subitem1Indent)}{marker} {subitem.SentenceText}");
                     continue;
                 }
                 writer.WriteLine(LawtextLineKind.Subitem1,

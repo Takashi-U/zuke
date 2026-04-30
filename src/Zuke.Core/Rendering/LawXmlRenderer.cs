@@ -60,7 +60,20 @@ public sealed class LawXmlRenderer
     private static XElement RenderParagraph(ParagraphNode p, LawXmlRenderOptions options)
     {
         var sentence = string.IsNullOrWhiteSpace(p.SentenceText) ? string.Empty : p.SentenceText;
-        return new("Paragraph", new XAttribute("Num", p.Number), string.IsNullOrEmpty(p.ParagraphNumText) ? new XElement("ParagraphNum") : new XElement("ParagraphNum", p.ParagraphNumText), new XElement("ParagraphSentence", new XElement("Sentence", new XAttribute("Num", 1), sentence)), p.Items.Select(i => RenderItem(i, options)));
+        var paragraph = new XElement("Paragraph", new XAttribute("Num", p.Number), string.IsNullOrEmpty(p.ParagraphNumText) ? new XElement("ParagraphNum") : new XElement("ParagraphNum", p.ParagraphNumText), new XElement("ParagraphSentence", new XElement("Sentence", new XAttribute("Num", 1), sentence)));
+        foreach (var item in p.Items)
+        {
+            if (item.IsRawBullet)
+            {
+                paragraph.Add(RenderList(item));
+            }
+            else
+            {
+                paragraph.Add(RenderItem(item, options));
+            }
+        }
+
+        return paragraph;
     }
 
     private static XElement RenderItem(ItemNode i, LawXmlRenderOptions options)
@@ -72,27 +85,24 @@ public sealed class LawXmlRenderer
         var e = new XElement("Item", new XAttribute("Num", i.Number), new XElement("ItemTitle", itemTitle), new XElement("ItemSentence", new XElement("Sentence", new XAttribute("Num", 1), itemSentence)));
         foreach (var child in i.Children)
         {
-            if (string.Equals(child.ItemTitle, "-", StringComparison.Ordinal))
+            if (child.IsRawBullet)
             {
-                var fallback = NormalizeSentence(child.SentenceText, "-");
-                if (!string.IsNullOrWhiteSpace(fallback))
-                {
-                    var sentenceElement = e.Element("ItemSentence")?.Element("Sentence");
-                    if (sentenceElement is not null)
-                    {
-                        var current = sentenceElement.Value;
-                        sentenceElement.Value = string.IsNullOrWhiteSpace(current) ? fallback : $"{current}\n{fallback}";
-                    }
-                }
-
+                e.Add(RenderList(child));
                 continue;
             }
 
-            var subitemSentence = NormalizeSentence(child.SentenceText, child.ItemTitle);
+                        var subitemSentence = NormalizeSentence(child.SentenceText, child.ItemTitle);
             e.Add(new XElement("Subitem1", new XAttribute("Num", child.Number), new XElement("Subitem1Title", child.ItemTitle), new XElement("Subitem1Sentence", new XElement("Sentence", new XAttribute("Num", 1), subitemSentence))));
         }
 
         return e;
+    }
+
+    private static XElement RenderList(ItemNode rawListItem)
+    {
+        return new XElement("List",
+            new XElement("ListSentence",
+                new XElement("Sentence", new XAttribute("Num", 1), rawListItem.SentenceText)));
     }
 
     private static IEnumerable<XElement> RenderSupplementaryProvisions(LawDocumentModel model)

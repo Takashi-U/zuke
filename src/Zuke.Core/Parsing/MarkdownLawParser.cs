@@ -245,21 +245,29 @@ public sealed class MarkdownLawParser
                 continue;
             }
 
-            var rawBulletChild = Regex.Match(line, @"^(?<indent>\s{2,})-\s*(?<text>.+)$");
-            if (rawBulletChild.Success && currentItems.Count > 0)
+            var rawBulletChild = Regex.Match(line, @"^(?<indent>\s{2,})(?<marker>[-・])\s*(?<text>.+)$");
+            if (rawBulletChild.Success && currentItems.Count > 0 && !currentItems[^1].IsRawBullet)
             {
                 var parent = currentItems[^1];
                 var children = parent.Children.ToList();
                 children.Add(new ItemNode(
                     children.Count + 1,
                     null,
-                    "-",
+                    rawBulletChild.Groups["marker"].Value,
                     rawBulletChild.Groups["text"].Value.Trim(),
                     new(filePath, lineNo, 1),
                     [],
                     rawBulletChild.Groups["indent"].Value,
                     true));
                 currentItems[^1] = parent with { Children = children };
+                continue;
+            }
+
+            var rawBulletParagraph = Regex.Match(line, @"^(?<indent>\s{2,})(?<marker>[-・])\s*(?<text>.+)$");
+            if (rawBulletParagraph.Success)
+            {
+                var nextNo = ++itemNo;
+                currentItems.Add(new ItemNode(nextNo, null, rawBulletParagraph.Groups["marker"].Value, rawBulletParagraph.Groups["text"].Value.Trim(), new(filePath, lineNo, 1), [], rawBulletParagraph.Groups["indent"].Value, true));
                 continue;
             }
 

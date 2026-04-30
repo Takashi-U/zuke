@@ -81,6 +81,15 @@ public sealed class ExtendedMarkdownRenderer
 
         void RenderItem(ArticleNode article, ParagraphNode paragraph, ItemNode item)
         {
+            if (item.IsRawBullet)
+            {
+                var marker = string.IsNullOrWhiteSpace(item.ItemTitle) ? "-" : item.ItemTitle;
+                var indent = string.IsNullOrEmpty(item.LeadingWhitespace) ? "  " : item.LeadingWhitespace;
+                Append($"{indent}{marker} {item.SentenceText}");
+                mapping.Add(CreateMapping("List", item.Location?.Line, $"{BuildParagraphNumber(article, paragraph)}List", item.ReferenceName, null));
+                return;
+            }
+
             var label = ShouldEmitLabel(item.ReferenceName, "Item") ? $"[号:{item.ReferenceName}] " : string.Empty;
             var itemTitle = string.IsNullOrWhiteSpace(item.ItemTitle) ? JapaneseNumberFormatter.ToItemTitle(item.Number, false) : item.ItemTitle;
             Append($"- {label}{itemTitle}　{item.SentenceText}");
