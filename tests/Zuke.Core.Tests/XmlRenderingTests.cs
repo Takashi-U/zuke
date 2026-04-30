@@ -88,7 +88,7 @@ lang: ja
     }
 
     [Fact]
-    public void XmlRendersSupplementaryProvision()
+    public void XmlRendersSupplementaryProvisionAsParagraph()
     {
         const string markdown = """
 # テスト規則
@@ -103,7 +103,10 @@ lang: ja
 
         Assert.Contains("<SupplProvision>", xml);
         Assert.Contains("<SupplProvisionLabel>附則</SupplProvisionLabel>", xml);
-        Assert.Contains("本規則は、◯年◯月◯日から適用する。", xml);
+        Assert.DoesNotContain("<SupplProvisionSentence>", xml);
+        Assert.Contains("<Paragraph Num=\"1\">", xml);
+        Assert.Contains("<ParagraphNum />", xml);
+        Assert.Contains("<ParagraphSentence><Sentence Num=\"1\">本規則は、◯年◯月◯日から適用する。</Sentence></ParagraphSentence>", xml);
     }
 
     private static string RenderXml(string markdown)

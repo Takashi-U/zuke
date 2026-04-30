@@ -68,4 +68,35 @@ lang: ja
         var diags = new LawXmlValidator().Validate(broken, xsd);
         Assert.Contains(diags, d => d.Code == "LMD044");
     }
+
+    [Fact]
+    public void SupplementaryProvision_GeneratesValidXml()
+    {
+        var md = """
+---
+lawTitle: テスト規則
+lawNum: テスト第1号
+era: Reiwa
+year: 6
+num: 1
+lawType: Misc
+lang: ja
+---
+# テスト規則
+
+## 第一条
+本文。
+
+## 附則
+本規則は、◯年◯月◯日から適用する。
+""";
+        var result = TestHelpers.Compile(md);
+        Assert.False(result.HasErrors);
+
+        var xml = new LawXmlRenderer().Render(result.Document!.Document);
+        Assert.DoesNotContain("<SupplProvisionSentence>", xml.ToString(SaveOptions.DisableFormatting));
+        var xsd = Path.Combine(TestHelpers.RepoRoot, "schemas", "XMLSchemaForJapaneseLaw_v3.xsd");
+        var diags = new LawXmlValidator().Validate(xml, xsd);
+        Assert.DoesNotContain(diags, d => d.Code == "LMD044");
+    }
 }
