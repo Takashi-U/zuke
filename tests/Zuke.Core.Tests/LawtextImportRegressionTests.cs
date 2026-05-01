@@ -40,7 +40,7 @@ public class LawtextImportRegressionTests
         Assert.DoesNotContain("本条第5条第1項", rendered);
         Assert.Contains("会社は、本条第6項又は第7項を準用する。", rendered);
         Assert.Contains("従業員は、本条第3項第1号による。", rendered);
-        Assert.DoesNotContain("\n２　会社は", rendered);
+        Assert.DoesNotContain("\n２　会社は", rendered, StringComparison.Ordinal);
         Assert.Contains("\n      附則\n", rendered);
     }
 
