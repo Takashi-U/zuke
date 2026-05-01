@@ -66,9 +66,9 @@ paragraphNumberStyle: ascii
 
         var rendered = new LawtextRenderer().Render(compiled.Document!);
 
-        Assert.Contains("\n2　会社は", rendered);
-        Assert.Contains("\n3　従業員は", rendered);
-        Assert.DoesNotContain("\n２　会社は", rendered);
-        Assert.DoesNotContain("\n３　従業員は", rendered);
+        Assert.Contains("\n2　会社は", rendered, StringComparison.Ordinal);
+        Assert.Contains("\n3　従業員は", rendered, StringComparison.Ordinal);
+        Assert.DoesNotContain("\n２　会社は", rendered, StringComparison.Ordinal);
+        Assert.DoesNotContain("\n３　従業員は", rendered, StringComparison.Ordinal);
     }
 }
