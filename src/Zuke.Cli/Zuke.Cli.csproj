@@ -5,7 +5,18 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>zuke</ToolCommandName>
     <PackageId>Zuke.Cli</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.1.0-preview.1</Version>
+    <Authors>Takashi U</Authors>
+    <Company>Takashi-U</Company>
+    <Description>独自拡張Markdownから法令標準XMLとLawtextを生成し、Lawtext import、構造検査、差分表示を行う .NET CLI tool.</Description>
+    <PackageTags>law;lawtext;japanese-law;markdown;xml;cli;dotnet-tool</PackageTags>
+    <PackageProjectUrl>https://github.com/Takashi-U/zuke</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/Takashi-U/zuke</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <Copyright>Copyright (c) 2026 Takashi U</Copyright>    
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -16,6 +27,9 @@
     <PackageReference Include="Spectre.Console.Cli" Version="0.49.1" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+    <None Include="../../LICENSE" Pack="true" PackagePath="/" />
+    <None Include="../../ThirdPartyNotices.md" Pack="true" PackagePath="/" />
     <None Include="../../schemas/XMLSchemaForJapaneseLaw_v3.xsd" Pack="true" PackagePath="schemas/" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>
