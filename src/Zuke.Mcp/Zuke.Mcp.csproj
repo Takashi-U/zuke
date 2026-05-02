@@ -6,7 +6,7 @@
     <PackAsTool>true</PackAsTool>
     <ToolCommandName>zuke-mcp</ToolCommandName>
     <PackageId>Zuke.Mcp</PackageId>
-    <Version>0.1.0-preview.2</Version>
+    <Version>0.1.0-preview.3</Version>
     <Authors>Takashi U</Authors>
     <Company>Takashi-U</Company>
     <Description>Zuke MCP server for lawtext/XML compilation and validation.</Description>
