@@ -498,33 +498,6 @@ Get-ChildItem .\nupkg\*.nupkg
 - `ThirdPartyNotices.md`
 - `schemas/XMLSchemaForJapaneseLaw_v3.xsd`
 
-## リリース手順
-
-以下は、PowerShellでの作業例です。
-
-```powershell
-git switch main
-git pull origin main
-
-dotnet restore .\zuke.sln
-dotnet build .\zuke.sln -c Release
-dotnet test .\zuke.sln -c Release
-dotnet pack .\src\Zuke.Cli\Zuke.Cli.csproj -c Release -o .\nupkg
-```
-
-タグを作成してpushします。
-
-```powershell
-git tag v0.1.0-preview.1
-git push origin v0.1.0-preview.1
-```
-
-GitHub ActionsでNuGet公開ワークフローを設定している場合は、タグpushを契機にNuGet.orgへ公開します。公開後、別環境で次を確認してください。
-
-```powershell
-dotnet tool install --global Zuke.Cli --version 0.1.0-preview.1
-zuke --help
-```
 
 ## ライセンス
 
@@ -545,3 +518,4 @@ zuke 本体は MIT License で提供します。詳細は `LICENSE` を参照し
 - 表や複雑なHTMLブロックなど、法令標準XMLへ安全に落とし込めないMarkdown要素は未対応です。
 - 未対応要素は診断で停止させる方針です。
 - 本ツールは、法令・社内規程・就業規則の内容そのものを法的に検証するものではありません。
+
