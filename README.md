@@ -522,5 +522,42 @@ zuke 本体は MIT License で提供します。詳細は `LICENSE` を参照し
 
 ## MCP (MVP)
 
-`src/Zuke.Mcp` に MCP サーバー MVP を追加しました。詳細は `docs/mcp-mvp.md` を参照してください。
+`Zuke.Mcp` は、MCP（Model Context Protocol）対応の AI アプリ（Codex Desktop など）から Zuke の変換機能を使うための**別パッケージ**です。CLI 用の `Zuke.Cli` とは用途と配布先（NuGet パッケージページ）が異なります。
 
+### インストール
+
+```powershell
+dotnet tool install --global Zuke.Mcp --version 0.1.0-preview.2
+```
+
+### 起動
+
+```powershell
+zuke-mcp
+```
+
+### Codex Desktop / MCP ホスト設定例
+
+```toml
+[mcp_servers.zuke]
+command = 'C:\Users\<USER>\.dotnet\tools\zuke-mcp.exe'
+args = []
+```
+
+### 提供ツール（MVP）
+
+- `zuke_convert`
+- `zuke_lawtext`
+- `zuke_doctor`
+- `zuke.compile_lawtext`（既存互換）
+- `zuke.compile_xml`（既存互換）
+
+### 現時点の未対応範囲
+
+以下は現時点で未対応です。
+
+- `import`
+- `audit`
+- `diff`
+
+詳細は `docs/mcp-mvp.md` を参照してください。

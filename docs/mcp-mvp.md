@@ -4,21 +4,21 @@
 
 ## インストール
 
-```bash
-dotnet tool install --global Zuke.Mcp --version 0.1.0-preview.1
+```powershell
+dotnet tool install --global Zuke.Mcp --version 0.1.0-preview.2
 ```
 
 ローカル `.nupkg` を使う場合:
 
-```bash
-dotnet tool install --global Zuke.Mcp --add-source ./nupkg --version 0.1.0-preview.1
+```powershell
+dotnet tool install --global Zuke.Mcp --add-source ./nupkg --version 0.1.0-preview.2
 ```
 
 ## 起動方法
 
 `dotnet tool` インストール後、MCP サーバーは次で起動できます。
 
-```bash
+```powershell
 zuke-mcp
 ```
 
