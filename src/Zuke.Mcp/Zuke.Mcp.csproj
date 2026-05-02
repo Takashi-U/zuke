@@ -1,4 +1,25 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <PackAsTool>true</PackAsTool>
+    <ToolCommandName>zuke-mcp</ToolCommandName>
+    <PackageId>Zuke.Mcp</PackageId>
+    <Version>0.1.0-preview.1</Version>
+    <Authors>Takashi U</Authors>
+    <Company>Takashi-U</Company>
+    <Description>Zuke MCP server for lawtext/XML compilation and validation.</Description>
+    <PackageTags>law;lawtext;japanese-law;markdown;xml;mcp;dotnet-tool</PackageTags>
+    <RepositoryUrl>https://github.com/Takashi-U/zuke</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\Zuke.Core\Zuke.Core.csproj" />
@@ -9,11 +30,11 @@
     <PackageReference Include="ModelContextProtocol" Version="1.2.0" />
   </ItemGroup>
 
-  <PropertyGroup>
-    <OutputType>Exe</OutputType>
-    <TargetFramework>net10.0</TargetFramework>
-    <ImplicitUsings>enable</ImplicitUsings>
-    <Nullable>enable</Nullable>
-  </PropertyGroup>
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="/" />
+    <None Include="../../LICENSE" Pack="true" PackagePath="/" />
+    <None Include="../../ThirdPartyNotices.md" Pack="true" PackagePath="/" />
+    <None Include="../../schemas/XMLSchemaForJapaneseLaw_v3.xsd" Pack="true" PackagePath="schemas/" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
 
 </Project>
