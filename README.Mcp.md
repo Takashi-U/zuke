@@ -1,80 +1,38 @@
 # Zuke.Mcp
 
-`Zuke.Mcp` は、[Model Context Protocol (MCP)](https://modelcontextprotocol.io/) 対応の AI アプリから、法令標準 XML 変換・Lawtext 変換・診断を安全に呼び出すための .NET グローバルツールです。
+`Zuke.Mcp` は、MCP ホスト（Codex Desktop など）から Zuke.Core の主要変換機能を **文字列入力・文字列出力** で安全に呼び出すための .NET ツールです。
 
-- 対象: Codex Desktop などの MCP ホスト
-- 位置づけ: `Zuke.Cli` とは別パッケージ（MCP サーバー専用）
-- トランスポート: `stdio`（MCP JSON-RPC）
+- `Zuke.Cli` には依存せず、`Zuke.Core` を直接利用
+- トランスポートは `stdio`（MCP JSON-RPC）
+- stdout は JSON-RPC 専用（`Console.WriteLine` などで汚さない）
+- ファイル I/O / 任意コマンド実行 / Git / ネットワーク操作ツールは未提供
 
-## インストール
+## 提供ツール
 
-```powershell
-dotnet tool install --global Zuke.Mcp --version 0.1.0-preview.2
-```
-
-起動:
-
-```powershell
-zuke-mcp
-```
-
-## Codex Desktop 等の MCP ホスト設定例
-
-Windows の例（Codex Desktop 設定ファイル）:
-
-```toml
-[mcp_servers.zuke]
-command = 'C:\Users\<USER>\.dotnet\tools\zuke-mcp.exe'
-args = []
-```
-
-> 補足: `command` は環境に応じて実際のインストール先パスに合わせてください。
-
-## 提供ツール一覧（MVP）
-
-- `zuke_convert`（Markdown/Lawtext -> 法令標準 XML）
-- `zuke_lawtext`（法令標準 XML -> Lawtext）
-- `zuke_doctor`（実行環境・XSD 解決可否の確認）
+- `zuke_import`（Lawtext → 拡張 Markdown）
+- `zuke_audit`（Lawtext 監査）
+- `zuke_diff`（Markdown 同士を Lawtext 正規化して unified diff 生成）
+- `zuke_validate_xml`（XML を同梱 XSD で検証）
+- `zuke_convert`（`to=xml|lawtext|both`）
+- `zuke_lawtext`（既存互換）
+- `zuke_doctor`
 - `zuke.compile_lawtext`（既存互換）
 - `zuke.compile_xml`（既存互換）
 
-## `zuke_doctor` の確認方法
+## MCP ホストからの自然言語利用例
 
-MCP ホストから `zuke_doctor` を実行し、以下を確認してください。
+- 「この Lawtext を zuke_import で Markdown に変換して」
+- 「この Lawtext を zuke_audit で strict=true で監査して、reportMarkdown も返して」
+- 「この old/new Markdown を zuke_diff で比較して（context=5）」
+- 「この XML を zuke_validate_xml で検証して」
+- 「この Markdown を zuke_convert で to=both にして XML と Lawtext 両方出して」
 
-- `success` が `true`
-- `hasErrors` が `false`
-- `summary` にエラーがないこと
-- `outputs` / `diagnostics` に XSD 解決失敗が出ていないこと
+## 診断コード
 
-## `zuke_lawtext` / `zuke_convert` の利用例
+- `MCP004`: unsupported option or mode
+- `MCP005`: XSD cannot be resolved
+- `MCP999`: unexpected exception
 
-### 例1: `zuke_lawtext`
+## 免責
 
-- 入力: 法令標準 XML 文字列
-- 出力: Lawtext 文字列（`content` または `outputs`）
-
-### 例2: `zuke_convert`
-
-- 入力: Markdown または Lawtext 文字列
-- 出力: 法令標準 XML 文字列（`content` または `outputs`）
-- 補足: 既定で XSD 検証を実行し、問題は `diagnostics` に格納されます
-
-## stdout の取り扱い（重要）
-
-`Zuke.Mcp` は **stdout を MCP JSON-RPC 専用**として扱います。プロトコル破損を防ぐため、ログを stdout に出力しない設計です。
-
-- 通信: stdout（JSON-RPC メッセージ）
-- ログ/診断: 構造化レスポンス（`diagnostics` 等）で返却
-
-## 現時点の未対応範囲
-
-MVP では以下は未対応です。
-
-- `import`
-- `audit`
-- `diff`
-
-## 免責・人間確認
-
-本ツールは法令・規程の技術的変換と診断を支援するものであり、法的判断を代替しません。公開・施行・運用に関わる最終判断は、必ず人間（法務・実務担当者）が原文・出力物を確認した上で行ってください。
+法的判断を代替するものではありません。公開・施行・運用前に必ず人間が原文・変換結果を確認してください。
