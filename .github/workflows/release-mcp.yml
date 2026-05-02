@@ -1,0 +1,45 @@
+name: NuGet Release MCP
+
+on:
+  push:
+    tags:
+      - "mcp-v*"
+
+permissions:
+  contents: read
+
+jobs:
+  publish-mcp:
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET 10 SDK
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: |
+            10.0.x
+
+      - name: Display .NET info
+        run: dotnet --info
+
+      - name: Restore
+        run: dotnet restore zuke.sln
+
+      - name: Build
+        run: dotnet build zuke.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test zuke.sln --configuration Release --no-build --verbosity normal
+
+      - name: Pack MCP global tool
+        run: dotnet pack src/Zuke.Mcp/Zuke.Mcp.csproj --configuration Release --no-build -o ./nupkg
+
+      - name: Publish MCP to NuGet.org
+        run: dotnet nuget push "./nupkg/*.nupkg" --source "https://api.nuget.org/v3/index.json" --api-key "$NUGET_API_KEY" --skip-duplicate
+        env:
+          NUGET_API_KEY: ${{ secrets.NUGET_API_KEY }}
