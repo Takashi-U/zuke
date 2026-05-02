@@ -13,7 +13,7 @@
     <PackageTags>law;lawtext;japanese-law;markdown;xml;mcp;dotnet-tool</PackageTags>
     <RepositoryUrl>https://github.com/Takashi-U/zuke</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageReadmeFile>README.Mcp.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
@@ -32,6 +32,7 @@
 
   <ItemGroup>
     <None Include="../../README.md" Pack="true" PackagePath="/" />
+    <None Include="../../README.Mcp.md" Pack="true" PackagePath="/" />
     <None Include="../../LICENSE" Pack="true" PackagePath="/" />
     <None Include="../../ThirdPartyNotices.md" Pack="true" PackagePath="/" />
     <None Include="../../schemas/XMLSchemaForJapaneseLaw_v3.xsd" Pack="true" PackagePath="schemas/" CopyToOutputDirectory="PreserveNewest" />
